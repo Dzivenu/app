@@ -499,7 +499,7 @@ export default class Home extends React.Component {
           <div key={'post'+index}>
             <div class="row post whiteBox" >
               <div class="col-xs-12">
-                <h2>{post.title}</h2>
+                <a onClick={() => self.loadPost(post.permlink)}><h2>{post.title}</h2></a>
                 <h4>{STRINGS.posted} {post.created} {STRINGS.in} {post.category.charAt(0).toUpperCase() + post.category.slice(1)}</h4>
               </div>
               <div class="col-xs-12">
