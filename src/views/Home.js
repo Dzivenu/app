@@ -108,6 +108,7 @@ export default class Home extends React.Component {
         categories: [],
         nodeInfo: {},
         profile: {},
+        error: false,
         follow: {follower_count: 0, following_count: 0},
         strings: (Store.lang && Store.lang == 'es') ? languages.es : languages.en
       }
@@ -120,13 +121,16 @@ export default class Home extends React.Component {
         self.setState({strings: languages[Store.lang]});
       });
 
-      self.loadData().then(function([profile, follow, history]){
-        self.setState({allPosts: history.posts, months: history.months, categories: history.categories, profile: profile, follow: follow});
-        if (self.state.postID.length > 0)
-          self.loadPost(self.state.postID);
-        else
-          self.loadPosts(self.state.page, self.state.category, self.state.month);
-      });
+      if (config.steem.username == '')
+        self.setState({loading: false, error: true});
+      else
+        self.loadData().then(function([profile, follow, history]){
+          self.setState({allPosts: history.posts, months: history.months, categories: history.categories, profile: profile, follow: follow});
+          if (self.state.postID.length > 0)
+            self.loadPost(self.state.postID);
+          else
+            self.loadPosts(self.state.page, self.state.category, self.state.month);
+        });
 
     }
 
@@ -360,6 +364,18 @@ export default class Home extends React.Component {
           </div>
         </div>;
 
+      const error =
+        <div class="container">
+          <div class="row text-center">
+            <div class="col-xs-12 whiteBox">
+              <br></br>
+              <h2>Invalid URL parameters.</h2>
+              <h2>Go to <Link to="getUrl">URL Generator</Link> to generate your blog url.</h2>
+              <br></br>
+            </div>
+          </div>
+        </div>;
+
       const header =
         <div class="row post whiteBox titlebox">
           <h1>
@@ -507,6 +523,8 @@ export default class Home extends React.Component {
         <div>
           { self.state.loading ?
             <div>{loader}</div>
+          : self.state.error ?
+            <div>{error}</div>
           :
             <div class="container">
               <div class="row">
