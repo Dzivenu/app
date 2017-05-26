@@ -260,7 +260,7 @@ export default class Home extends React.Component {
       ]);
     }
 
-    loadPost(id){
+    async loadPost(id){
       var self = this;
       var actualHash = baseURL.split('/#/');
       window.location.hash = (actualHash[1].length > 0) ?
@@ -268,15 +268,23 @@ export default class Home extends React.Component {
         : '#/?id='+id;
       var posts = this.state.allPosts;
 
-      Promise.all([
-        steem.api.getContent(config.steem.username, id),
-        steem.api.getContentReplies(config.steem.username, id)
-      ]).then(function([post, replies]){
-        post.body = self.convertVideos(post.body);
-        post.comments = replies;
-        post = _.merge(posts[ _.findIndex(posts, {permlink: post.permlink }) ], post);
-        self.setState({postID: id, page: 1, category: 'all', month: 'all', posts: [post], loading: false});
-      })
+      var firstReplies = await steem.api.getContentReplies(config.steem.username, id)
+
+      async function getChildrenReplies(replies){
+        replies = Promise.all(replies.map(async function(reply, i) {
+          if (reply.children > 0)
+            reply.replies = await getChildrenReplies( await steem.api.getContentReplies(reply.author, reply.permlink) );
+          return reply;
+        }));
+        return await replies;
+      }
+
+      var post = await steem.api.getContent(config.steem.username, id)
+      post.body = self.convertVideos(post.body);
+      post.replies = await getChildrenReplies(firstReplies);
+      post = _.merge(posts[ _.findIndex(posts, {permlink: post.permlink }) ], post);
+      self.setState({postID: id, page: 1, category: 'all', month: 'all', posts: [post], loading: false});
+
     }
 
     // Function to convert video and youtube links to video player
@@ -448,6 +456,26 @@ export default class Home extends React.Component {
         </nav>;
 
       function renderPostLong(post){
+        function renderChildrenReplies(replies){
+          return replies.map(function(reply, i) {
+            return (
+              <div key={"reply"+reply.depth+i} style={{marginLeft:(reply.depth-1)*20}}>
+                <div class="row comment whiteBox" >
+                  <div class="col-xs-12">
+                    <strong>@{reply.author}</strong> - {moment(reply.time).format('MMMM Do YYYY, h:mm:ss a')}
+                    <h4 dangerouslySetInnerHTML={{"__html": converter.makeHtml(reply.body)}} ></h4>
+                  </div>
+                </div>
+                <div>
+                  {(reply.children > 0) ? <div>
+                  {  renderChildrenReplies(reply.replies) }
+                  </div> : <div></div>}
+                </div>
+              </div>
+            )
+          })
+        }
+
         return (
           <div key='singlePost'>
             <div class="row post whiteBox" >
@@ -481,16 +509,9 @@ export default class Home extends React.Component {
                 </div>
               </div>
             </div>
-            {post.comments.map( function(comment, index){
-              return (
-                <div class="row comment whiteBox" key={'comment'+index} >
-                  <div class="col-xs-12">
-                    <strong>@{comment.author}</strong> - {moment(comment.time).format('MMMM Do YYYY, h:mm:ss a')}
-                    <h4 dangerouslySetInnerHTML={{"__html": converter.makeHtml(comment.body)}} ></h4>
-                  </div>
-                </div>
-              )
-            })}
+            <div>
+            {renderChildrenReplies(post.replies)}
+            </div>
           </div>
         )
       }
