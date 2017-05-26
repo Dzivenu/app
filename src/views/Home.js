@@ -75,6 +75,8 @@ export default class Home extends React.Component {
         if (getParameter('title')){
           config.blogTitle = getParameter('title');
           baseURL += (baseURL.indexOf('?') > 0) ? '&title='+config.blogTitle : '?title='+config.blogTitle;
+        } else {
+          config.blogTitle = '@' + config.steem.username + ' SteemBlog';
         }
         if (getParameter('fb')){
           config.facebookLink = getParameter('fb');
@@ -230,6 +232,7 @@ export default class Home extends React.Component {
               console.log('Account',config.steem.username,'data:',accounts[0]);
               console.log('Account',config.steem.username,'profile:', JSON.parse(accounts[0].json_metadata));
               profile = JSON.parse(accounts[0].json_metadata).profile;
+              profile.reputation = steem.formatter.reputation(accounts[0].reputation);
               resolve(profile);
             }
           })
@@ -397,6 +400,7 @@ export default class Home extends React.Component {
           <div class="whiteBox margin-top text-center">
             <h3 class="no-margin margin-bottom">{STRINGS.about}</h3>
             <h4>{self.state.profile.about}</h4>
+            <h4>{self.state.profile.reputation} Reputation</h4>
             <h4>{self.state.allPosts.length} Posts</h4>
             <h4>{self.state.follow.follower_count} Followers</h4>
             <h4>{self.state.follow.following_count} Following</h4>
