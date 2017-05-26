@@ -49,7 +49,7 @@ export default class Home extends React.Component {
         for (i=0;i<params.length;i++) {
           val = params[i].split("=");
           if (val[0] == paramName) {
-            return val[1].replace('%20', ' ');
+            return val[1].replace(/%20/g, ' ');
           }
         }
         return null;
