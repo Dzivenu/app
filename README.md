@@ -2,7 +2,7 @@
 
 ## Install
 
-`git clone https://github.com/AugustoL/SteemBlog`
+`git clone https://github.com/SteemBlog/app`
 
 `npm install`
 
