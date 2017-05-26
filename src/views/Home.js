@@ -34,8 +34,8 @@ showdown.setOption('openLinksInNewWindow', true);
 require('showdown-youtube');
 var converter = new showdown.Converter({extensions: ['youtube', {
   type: 'lang',
-  regex: /([a-z\-_0-9\/\:\.]*\.(jpg|jpeg|png|gif))/i,
-  replace: '<div class="row text-center"><img src="$1" width="100%" height="auto"/></div>'
+  regex: /([a-z\-_0-9\/\:\.]*\.(jpg|jpeg|png|gif))/ig,
+  replace: '<div class="row row-image text-center"><img src="$1" width="100%" height="auto"/></div>'
 }]});
 
 export default class Home extends React.Component {

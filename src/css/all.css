@@ -17,6 +17,9 @@ body{
 	background-image: url('assets/background.png');
 }
 
+.row-image{
+	margin: 10px 0px;
+}
 .whiteBox{
 	background-color: #f8f8f8;
 	margin: 20px 0px;
