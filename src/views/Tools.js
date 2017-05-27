@@ -34,9 +34,10 @@ export default class Tools extends React.Component {
       this.state = {
         loading: true,
         username: '',
-        password: '',
+        postingKey: '',
         author: '',
         permlink: '',
+        voteWeight: 1000,
         strings: (Store.lang && Store.lang == 'es') ? languages.es : languages.en
       }
     }
@@ -53,20 +54,17 @@ export default class Tools extends React.Component {
     }
 
     signTx(){
-      console.log('yeddfsdf')
-      steem.api.getState('/what-are-steem-witnesses-and-why-you-should-support-them', function(err, result) {
-        console.log(err, result);
-      });
-      // steem.broadcast.vote(wif, username, 'teamsteem', 'what-are-steem-witnesses-and-why-you-should-support-them', 10000, function(err, result) {
-      //   console.log(err, result);
-      // });
+      // const wif = steem.auth.toWif(self.state.username, self.state.postingKey, 'posting');
+      // console.log(wif);
     }
 
-    votePost(username, password, author, permlink, up){
+    votePost(){
       var self = this;
       self.setState({loading: true});
-      const wif = steem.auth.toWif(self.state.username, self.state.password, 'posting');
-      steem.broadcast.vote(wif, self.state.username, self.state.author, self.state.permlink, 10000, function(err, result) {
+      steem.broadcast.vote(self.state.postingKey, self.state.username, self.state.author, self.state.permlink, parseInt(self.state.voteWeight), function(err, result) {
+        if (err)
+          console.error(err);
+        console.log(result);
         self.setState({loading: false, result: result});
       });
     }
@@ -123,21 +121,21 @@ export default class Tools extends React.Component {
                 onChange={(event) => {
                   self.setState({ username: event.target.value });
                 }}
-                placeholder={'Username'}
+                placeholder='Username'
               />
             </div>
           </div>
           <div class="col-xs-8">
             <div class="form-group">
-              <label>Password</label>
+              <label>Posting Key</label>
               <input
                 type="password"
                 class="form-control"
-                value={self.state.password}
+                value={self.state.postingKey}
                 onChange={(event) => {
-                  self.setState({ password: event.target.value });
+                  self.setState({ postingKey: event.target.value });
                 }}
-                placeholder={'Password'}
+                placeholder='Password'
               />
             </div>
           </div>
@@ -160,11 +158,11 @@ export default class Tools extends React.Component {
                   onChange={(event) => {
                     self.setState({ author: event.target.value });
                   }}
-                  placeholder={'Author'}
+                  placeholder='Author'
                 />
               </div>
             </div>
-            <div class="col-xs-8">
+            <div class="col-xs-5">
               <div class="form-group">
                 <label>Permlink</label>
                 <input
@@ -174,7 +172,24 @@ export default class Tools extends React.Component {
                   onChange={(event) => {
                     self.setState({ permlink: event.target.value });
                   }}
-                  placeholder={'Permlink'}
+                  placeholder='Permlink'
+                />
+              </div>
+            </div>
+            <div class="col-xs-3">
+              <div class="form-group">
+                <label>Vote Power</label>
+                <input
+                  type="number"
+                  min="1000"
+                  max="10000"
+                  step="1000"
+                  editable="false"
+                  class="form-control"
+                  value={self.state.voteWeight}
+                  onChange={(event) => {
+                    self.setState({ voteWeight: event.target.value });
+                  }}
                 />
               </div>
             </div>
