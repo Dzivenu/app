@@ -71,7 +71,9 @@ a{
 	overflow: hidden;
 	white-space: pre-line;
 	text-overflow: ellipsis;
-	height: 62px;
+	min-height: 20px;
+	max-height: 62px;
+	margin: 10px 0px 0px 0px;
 }
 
 a{
@@ -81,6 +83,16 @@ a:hover{
 	text-decoration: none;
 }
 
+.form-inline .form-group{
+	margin: 10px 15px 10px 15px;
+
+}
+.form-inline .form-group label{
+	margin-right: 10px;
+}
+.form-inline{
+
+}
 .white{
 	color: white;
 }

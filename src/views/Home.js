@@ -63,6 +63,7 @@ export default class Home extends React.Component {
           "twitterLink": "",
           "linkedinLink": "",
           "githubLink": "",
+          "showResteem": false,
           "steem": {
             "username": ""
           }
@@ -93,6 +94,10 @@ export default class Home extends React.Component {
         if (getParameter('github')){
           config.githubLink = getParameter('github');
           baseURL += (baseURL.indexOf('?') > 0) ? '&github='+config.githubLink : '?github='+config.githubLink;
+        }
+        if (getParameter('r')){
+          config.showResteem = true;
+          baseURL += (baseURL.indexOf('?') > 0) ? '&r='+config.showResteem : '?r='+config.showResteem;
         }
       }
       console.log('Base URL:',baseURL);
@@ -166,7 +171,7 @@ export default class Home extends React.Component {
             history = _.orderBy(history, function(h){ return h[0]});
             history = _.uniqBy(history, '0');
 
-            console.log('Account',username,'history:',history.length);
+            console.log('Account',username,'history:',history);
 
             for (var i = 0; i < history.length; i++) {
               if ((history[i][1].op[0] == 'comment')
@@ -184,13 +189,29 @@ export default class Home extends React.Component {
                     permlink: history[i][1].op[1].permlink,
                     categories: cats,
                     created: history[i][1].timestamp,
-                    comments: []
+                    resteem: false
+                  })
+                }
+
+              if ( config.showResteem
+                && (history[i][1].op[0] == 'custom_json')
+                && (history[i][1].op[1].id == "follow")
+                && (history[i][1].op[1].json.indexOf("reblog") > 0)
+                && ( _.findIndex(posts, {permlink: history[i][1].op[1].permlink }) < 0)
+              ) {
+                  var parsed = JSON.parse(history[i][1].op[1].json);
+                  posts.push({
+                    permlink: parsed[1].permlink,
+                    author: parsed[1].author,
+                    categories: [],
+                    date: new Date(),
+                    resteem: true
                   })
                 }
             }
 
             // Remove tests posts and reverse array to order by date
-            posts = _.filter(posts, function(o) { return o.categories.indexOf('Test') < 0; }).reverse();
+            posts = _.filter(posts, function(o) { return ((o.categories.indexOf('Test') < 0)&&(!o.resteem)); }).reverse();
 
             console.log('All account posts',posts);
 
@@ -331,12 +352,23 @@ export default class Home extends React.Component {
       // Get all posts content
       Promise.all(posts.map( function(post, index){
         return new Promise(function(resolvePost, rejectPost){
-          steem.api.getContent(config.steem.username, post.permlink, function(err, post) {
-            if (err)
-              rejectPost(err);
-            else
-              resolvePost(post);
-          });
+          if (config.showResteem && post.resteem){
+            steem.api.getContent(post.author, post.permlink, function(err, post) {
+              if (err)
+                rejectPost(err);
+              else{
+                post.resteem = true;
+                resolvePost(post);
+              }
+            });
+          } else {
+            steem.api.getContent(config.steem.username, post.permlink, function(err, post) {
+              if (err)
+                rejectPost(err);
+              else
+                resolvePost(post);
+            });
+          }
         })
       })).then(function(postsContent){
 
@@ -523,10 +555,17 @@ export default class Home extends React.Component {
         return (
           <div key={'post'+index}>
             <div class="row post whiteBox" >
-              <div class="col-xs-12">
-                <a onClick={() => self.loadPost(post.permlink)}><h2>{post.title}</h2></a>
-                <h4>{STRINGS.posted} {post.created} {STRINGS.in} {post.category.charAt(0).toUpperCase() + post.category.slice(1)}</h4>
-              </div>
+              { post.resteem ?
+                <div class="col-xs-12">
+                  <a href={"https://steemit.com/@"+config.steem.username+"/"+post.permlink}><h2><span class="fa fa-retweet"></span> {post.title}</h2></a>
+                  <h4>{STRINGS.posted} {post.created} {STRINGS.in} {post.category.charAt(0).toUpperCase() + post.category.slice(1)} {STRINGS.by} {post.author}</h4>
+                </div>
+              :
+                <div class="col-xs-12">
+                  <a onClick={() => self.loadPost(post.permlink)}><h2>{post.title}</h2></a>
+                  <h4>{STRINGS.posted} {post.created} {STRINGS.in} {post.category.charAt(0).toUpperCase() + post.category.slice(1)}</h4>
+                </div>
+              }
               <div class="col-xs-12">
                 <h4 class="shortBody">{text.substring(0,300)}</h4>
               </div>
@@ -537,7 +576,13 @@ export default class Home extends React.Component {
                 <h3>{post.children} <span class="fa fa-comments"></span></h3>
               </div>
               <div class="col-xs-4 text-center">
-                <a onClick={() => self.loadPost(post.permlink)}><h3>{STRINGS.viewPost}</h3></a>
+                { post.resteem ?
+                  <a href={"https://steemit.com/@"+config.steem.username+"/"+post.permlink}>
+                    <h3>{STRINGS.on} Steemit <img src="assets/steemit-black.png" class="steemit-icon-small"></img></h3>
+                  </a>
+                :
+                  <a onClick={() => self.loadPost(post.permlink)}><h3>{STRINGS.viewPost}</h3></a>
+                }
               </div>
             </div>
           </div>

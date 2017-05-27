@@ -39,6 +39,7 @@ export default class GetURL extends React.Component {
         linkedin: '',
         twitter: '',
         github: '',
+        resteem: false,
         url: 'Username Required',
         strings: (Store.lang && Store.lang == 'es') ? languages.es : languages.en
       }
@@ -55,29 +56,31 @@ export default class GetURL extends React.Component {
 
     }
 
-    generateUrl(username, title, fb, twitter, linkedin, github){
-      var self = this;
+    generateUrl(username, title, fb, twitter, linkedin, github, resteem){
       var baseURL = 'Username Required';
-      if (self.state.username.length > 0){
+      if (username.length > 0){
         baseURL = 'http://'+window.location.host+'/#/';
-        baseURL += (baseURL.indexOf('?') > 0) ? '&user='+username : '?user='+username;
+        baseURL += '?user='+username;
         if (title.length > 0){
-          baseURL += (baseURL.indexOf('?') > 0) ? '&title='+title : '?title='+title;
+          baseURL += '&title='+title;
         }
         if (fb.length > 0){
-          baseURL += (baseURL.indexOf('?') > 0) ? '&fb='+fb : '?fb='+fb;
+          baseURL += '&fb='+fb;
         }
         if (twitter.length > 0){
-          baseURL += (baseURL.indexOf('?') > 0) ? '&twitter='+twitter : '?twitter='+twitter;
+          baseURL += '&twitter='+twitter;
         }
         if (linkedin.length > 0){
-          baseURL += (baseURL.indexOf('?') > 0) ? '&linkedin='+linkedin : '?linkedin='+linkedin;
+          baseURL += '&linkedin='+linkedin;
         }
         if (github.length > 0){
-          baseURL += (baseURL.indexOf('?') > 0) ? '&github='+github : '?github='+github;
+          baseURL += '&github='+github;
+        }
+        if (resteem){
+          baseURL += '&r=1';
         }
       }
-      self.setState({url : baseURL});
+      this.setState({url : baseURL});
     }
 
     changeLanguage(lang){
@@ -118,95 +121,105 @@ export default class GetURL extends React.Component {
               User Information
             </h2>
           </div>
-          <div class="col-xs-6">
-            <div class="form-group">
-              <label>Username</label>
-              <input
-                type="text"
-                class="form-control"
-                value={self.state.username}
-                onChange={(event) => {
-                  self.setState({ username: event.target.value });
-                  self.generateUrl(event.target.value, self.state.title, self.state.fb, self.state.twitter, self.state.linkedin, self.state.github);
-                }}
-                placeholder={'Username'}
-              />
-            </div>
+
+          <div class="col-xs-12 text-center">
+            <form class="form-inline">
+              <div class="form-group">
+                <label>Username</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  value={self.state.username}
+                  onChange={(event) => {
+                    self.setState({ username: event.target.value });
+                    self.generateUrl(event.target.value, self.state.title, self.state.fb, self.state.twitter, self.state.linkedin, self.state.github, self.state.resteem);
+                  }}
+                  placeholder={'Username'}
+                />
+              </div>
+              <div class="form-group">
+                <label>Title</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  value={self.state.title}
+                  onChange={(event) => {
+                    self.setState({ title: event.target.value });
+                    self.generateUrl(self.state.username, event.target.value, self.state.fb, self.state.twitter, self.state.linkedin, self.state.github, self.state.resteem);
+                  }}
+                  placeholder={'Title'}
+                />
+              </div>
+              <div class="checkbox">
+                <label>
+                  <input
+                    type="checkbox"
+                    value={self.state.resteem}
+                    onChange={(event) => {
+                      self.setState({ resteem: event.target.checked });
+                      self.generateUrl(self.state.username, self.state.title, self.state.fb, self.state.twitter, self.state.linkedin, self.state.github, event.target.checked);
+                    }}
+                  /> Show Resteem
+                </label>
+              </div>
+            </form>
           </div>
-          <div class="col-xs-6">
-            <div class="form-group">
-              <label>Title</label>
-              <input
-                type="text"
-                class="form-control"
-                value={self.state.title}
-                onChange={(event) => {
-                  self.setState({ title: event.target.value });
-                  self.generateUrl(self.state.username, event.target.value, self.state.fb, self.state.twitter, self.state.linkedin, self.state.github);
-                }}
-                placeholder={'Title'}
-              />
-            </div>
-          </div>
-          <div class="col-xs-3">
-            <div class="form-group">
-              <label>Facebook</label>
-              <input
-                type="text"
-                class="form-control"
-                value={self.state.fb}
-                onChange={(event) => {
-                  self.setState({ fb: event.target.value });
-                  self.generateUrl(self.state.username, self.state.title, event.target.value, self.state.twitter, self.state.linkedin, self.state.github);;
-                }}
-                placeholder={'Facebook URL'}
-              />
-            </div>
-          </div>
-          <div class="col-xs-3">
-            <div class="form-group">
-              <label>Twitter</label>
-              <input
-                type="text"
-                class="form-control"
-                value={self.state.twitter}
-                onChange={(event) => {
-                  self.setState({ twitter: event.target.value });
-                  self.generateUrl(self.state.username, self.state.title, self.state.fb, event.target.value, self.state.linkedin, self.state.github);
-                }}
-                placeholder={'Twitter URL'}
-              />
-            </div>
-          </div>
-          <div class="col-xs-3">
-            <div class="form-group">
-              <label>Github</label>
-              <input
-                type="text"
-                class="form-control"
-                value={self.state.github}
-                onChange={(event) => {
-                  self.setState({ github: event.target.value });
-                  self.generateUrl(self.state.username, self.state.title, self.state.fb, self.state.twitter, self.state.linkedin, event.target.value);
-                }}
-                placeholder={'Github URL'}
-              />
-            </div>
-          </div>
-          <div class="col-xs-3">
-            <div class="form-group">
-              <label>Linkedin</label>
-              <input
-                type="text"
-                class="form-control"
-                value={self.state.linkedin}
-                onChange={(event) => {
-                  self.setState({ linkedin: event.target.value });
-                  self.generateUrl(self.state.username, self.state.title, self.state.fb, self.state.twitter, event.target.value, self.state.github);
-                }}
-                placeholder={'Linkedin URL'}
-              />
-            </div>
+
+          <div class="col-xs-12 text-center">
+            <form class="form-inline">
+              <div class="form-group">
+                <label>Facebook</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  value={self.state.fb}
+                  onChange={(event) => {
+                    self.setState({ fb: event.target.value });
+                    self.generateUrl(self.state.username, self.state.title, event.target.value, self.state.twitter, self.state.linkedin, self.state.github, self.state.resteem);
+                  }}
+                  placeholder={'Facebook URL'}
+                />
+              </div>
+              <div class="form-group">
+                <label>Twitter</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  value={self.state.twitter}
+                  onChange={(event) => {
+                    self.setState({ twitter: event.target.value });
+                    self.generateUrl(self.state.username, self.state.title, self.state.fb, event.target.value, self.state.linkedin, self.state.github, self.state.resteem);
+                  }}
+                  placeholder={'Twitter URL'}
+                />
+              </div>
+              <div class="form-group">
+                <label>Github</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  value={self.state.github}
+                  onChange={(event) => {
+                    self.setState({ github: event.target.value });
+                    self.generateUrl(self.state.username, self.state.title, self.state.fb, self.state.twitter, self.state.linkedin, event.target.value, self.state.resteem);
+                  }}
+                  placeholder={'Github URL'}
+                />
+              </div>
+              <div class="form-group">
+                <label>Linkedin</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  value={self.state.linkedin}
+                  onChange={(event) => {
+                    self.setState({ linkedin: event.target.value });
+                    self.generateUrl(self.state.username, self.state.title, self.state.fb, self.state.twitter, event.target.value, self.state.github);
+                  }}
+                  placeholder={'Linkedin URL'}
+                />
+              </div>
+            </form>
           </div>
           <div class="col-xs-12 text-center">
             <div class="btn btn-default" onClick={() => self.setState({
@@ -217,7 +230,8 @@ export default class GetURL extends React.Component {
               twitter: '',
               github: '',
               url: ''
-              })}> Clear </div>
+              })}
+            > Clear </div>
           </div>
         </div>;
 
