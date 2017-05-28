@@ -212,26 +212,27 @@ export default class Home extends React.Component {
             }
 
             // Remove tests posts and reverse array to order by date
-            posts = _.filter(posts, function(o) { return ((o.categories.indexOf('Test') < 0)&&(!o.resteem)); }).reverse();
+            const myPosts = _.filter(posts, function(o) { return ((o.categories.indexOf('Test') < 0)&&(!o.resteem)); }).reverse();
+            posts = _.filter(posts, function(o) { return (o.categories.indexOf('Test') < 0) }).reverse();
 
             console.log('All account posts',posts);
 
             // Get all categories
             var categories = [];
-            for (var i = 0; i < posts.length; i++)
-              for (var z = 0; z < posts[i].categories.length; z++)
-                if (!_.find(categories, {name : posts[i].categories[z]}))
-                  categories.push({name: posts[i].categories[z], quantity: 1});
+            for (var i = 0; i < myPosts.length; i++)
+              for (var z = 0; z < myPosts[i].categories.length; z++)
+                if (!_.find(categories, {name : myPosts[i].categories[z]}))
+                  categories.push({name: myPosts[i].categories[z], quantity: 1});
                 else
-                  _.find(categories, {name : posts[i].categories[z]}).quantity ++;
+                  _.find(categories, {name : myPosts[i].categories[z]}).quantity ++;
 
             categories = _.orderBy(categories, ['quantity', 'name'] , ['desc', 'asc']);
 
             // Get all months
             var months = [];
-            for (var i = 0; i < posts.length; i++) {
-              var month = new Date(posts[i].created).getMonth()+1;
-              var year = new Date(posts[i].created).getFullYear();
+            for (var i = 0; i < myPosts.length; i++) {
+              var month = new Date(myPosts[i].created).getMonth()+1;
+              var year = new Date(myPosts[i].created).getFullYear();
               if (!_.find(months, {month : month, year: year}))
                 months.push({month : month, year: year, quantity: 1});
               else
@@ -327,17 +328,20 @@ export default class Home extends React.Component {
 
     loadPosts(page, category, month){
       var self = this;
+      var posts = self.state.allPosts;
       self.setState({loading: true});
       if (page > 1 || category != 'all' || month != 'all'){
         var actualHash = baseURL.split('/#/');
         window.location.hash = (actualHash[1].length > 0) ?
           '#/'+actualHash[1]+'&page='+page+'&category='+category+'&month='+month
           : '#/?page='+page+'&category='+category+'&month='+month;
+
+        // Show resteemed posts only in home
+        posts = _.filter(posts, function(o) { return !o.resteem });
+        
       } else {
         window.location.hash = baseURL.split('/#/')[1];
       }
-
-      var posts = self.state.allPosts;
 
       // Filter by category
       if (category != 'all')
