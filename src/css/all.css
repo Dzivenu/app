@@ -118,3 +118,7 @@ a:hover{
 	width: 35px;
 	margin-bottom: 10px;
 }
+
+.alert{
+	margin-bottom: 0px;
+}

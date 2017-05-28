@@ -101,6 +101,7 @@ export default class Home extends React.Component {
         }
       }
       console.log('Base URL:',baseURL);
+      console.log('Config:',config);
 
       this.state = {
         loading: true,
