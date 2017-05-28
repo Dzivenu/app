@@ -1,5 +1,5 @@
 import React from 'react';
-import {Link} from "react-router";
+import {Link} from "react-router-dom";
 
 import steem from 'steem';
 import moment from 'moment';
@@ -54,7 +54,7 @@ export default class Home extends React.Component {
         }
         return null;
       }
-
+      console.log(window.location)
       if (loadFromURL){
 
         config = {
@@ -283,6 +283,7 @@ export default class Home extends React.Component {
 
     async loadPost(id){
       var self = this;
+      self.setState({loading: true});
       var actualHash = baseURL.split('/#/');
       window.location.hash = (actualHash[1].length > 0) ?
         '#/'+actualHash[1]+'&id='+id
@@ -325,7 +326,7 @@ export default class Home extends React.Component {
 
     loadPosts(page, category, month){
       var self = this;
-
+      self.setState({loading: true});
       if (page > 1 || category != 'all' || month != 'all'){
         var actualHash = baseURL.split('/#/');
         window.location.hash = (actualHash[1].length > 0) ?
@@ -413,7 +414,9 @@ export default class Home extends React.Component {
             <div class="col-xs-12 whiteBox">
               <br></br>
               <h2>Invalid URL parameters.</h2>
-              <h2>Go to <Link to="getUrl">URL Generator</Link> to generate your blog url.</h2>
+              <h2>Go to <Link to="url">URL Generator</Link> to generate your blog url.</h2>
+              <br></br>
+              <h2>Go to <Link to="tools">SteemBlog Tools</Link> to vote, comment and publish.</h2>
               <br></br>
             </div>
           </div>

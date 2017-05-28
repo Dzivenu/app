@@ -11,7 +11,7 @@ class AppStore extends EventEmitter {
 			this.lang = window.localStorage.lang;
 		else
 			this.lang = navigator.language;
-		console.log('Local storage', window.localStorage);
+		// console.log('Local storage', window.localStorage);
 	}
 
 	handleActions(action) {

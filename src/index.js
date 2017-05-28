@@ -2,33 +2,28 @@
 //React ,router and history
 import React from "react";
 import ReactDOM from "react-dom";
-import { Router, Route, IndexRoute } from "react-router";
-import createHashHistory from 'history/lib/createHashHistory';
+import { HashRouter as Router, Route, Switch } from "react-router-dom";
 
 //Views
 import Home from "./views/Home";
 import Tools from "./views/Tools";
-import GetURL from "./views/GetURL";
-
-import Store from "./Store";
-var appConfig = require('./config.json');
+import Url from "./views/Url";
+import Error from "./views/Error";
 
 //CSS
 require('../node_modules/bootstrap/dist/css/bootstrap.css');
 require('../node_modules/font-awesome/css/font-awesome.css');
 require('./css/all.css');
 
-//Set history
-const history = createHashHistory({ queryKey: false })
-const app = document.getElementById('app');
 
 //Set router
 ReactDOM.render(
-  <Router history={history}>
-
-    <Route path="/" name="home" component={Home}></Route>
-    <Route path="/tools" name="tools" component={Tools}></Route>
-    <Route path="/getUrl" name="getUrl" component={GetURL}></Route>
-
+  <Router>
+    <Switch>
+      <Route exact path="/" name="home" component={Home}></Route>
+      <Route exact path="/tools" name="tools" component={Tools}></Route>
+      <Route exact path="/url" name="url" component={Url}></Route>
+      <Route name="home" component={Error}></Route>
+    </Switch>
   </Router>,
-app);
+document.getElementById('app'));

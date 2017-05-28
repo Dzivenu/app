@@ -1,5 +1,4 @@
 import React from 'react';
-import {Link} from "react-router";
 
 import steem from 'steem';
 import moment from 'moment';
@@ -19,7 +18,7 @@ export default class Tools extends React.Component {
     constructor() {
       super();
       function getParameter(paramName) {
-        var searchString = window.location.hash.substring(3),
+        var searchString = window.location.hash.substring(8),
         i, val, params = searchString.split("&");
 
         for (i=0;i<params.length;i++) {
@@ -35,8 +34,8 @@ export default class Tools extends React.Component {
         loading: true,
         username: '',
         postingKey: '',
-        author: '',
-        permlink: '',
+        author: getParameter('author') || '',
+        permlink: getParameter('permlink') || '',
         voteWeight: 1000,
         strings: (Store.lang && Store.lang == 'es') ? languages.es : languages.en
       }
@@ -99,7 +98,7 @@ export default class Tools extends React.Component {
         <div class="row whiteBox">
           <div class="col-xs-12 text-center">
             <h1>
-              Steem Tools
+              SteemBlog Tools
             </h1>
           </div>
         </div>;
@@ -181,10 +180,9 @@ export default class Tools extends React.Component {
                 <label>Vote Power</label>
                 <input
                   type="number"
-                  min="1000"
+                  min="-10000"
                   max="10000"
                   step="1000"
-                  editable="false"
                   class="form-control"
                   value={self.state.voteWeight}
                   onChange={(event) => {
