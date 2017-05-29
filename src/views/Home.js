@@ -10,7 +10,11 @@ import until from 'async/until';
 import Dispatcher from "../Dispatcher";
 import Store from "../Store";
 import Loader from "../components/Loader";
+import Message from "../components/Message";
 import ReactSocial from "react-social";
+import ReactModal from "react-modal";
+
+import SteemActions from "../actions/Steem"
 
 var TwitterButton = ReactSocial.TwitterButton;
 var FacebookButton = ReactSocial.FacebookButton;
@@ -117,6 +121,13 @@ export default class Home extends React.Component {
         nodeInfo: {},
         profile: {},
         error: false,
+        voteModal: false,
+        signerPostKey: "",
+        signerUsername: "",
+        targetAuthor: "",
+        targetPermlink: "",
+        comment: "",
+        voteWeight: 10000,
         follow: {follower_count: 0, following_count: 0},
         strings: (Store.lang && Store.lang == 'es') ? languages.es : languages.en
       }
@@ -283,6 +294,52 @@ export default class Home extends React.Component {
       ]);
     }
 
+    votePost(){
+      var self = this;
+      self.setState({loading: true});
+      steem.broadcast.vote(
+        self.state.signerPostKey,
+        self.state.signerUsername,
+        self.state.targetAuthor,
+        self.state.targetPermlink,
+        parseInt(self.state.voteWeight),
+        function(err, result) {
+          self.setState({loading: false, voteModal: false});
+          if (err && err.payload.error.message.indexOf('You have already voted in a similar way.') > 0)
+            self._message.open('error', 'Vote already done', false);
+          else if (err && err.payload.error.data.stack[0].format)
+            self._message.open('error', err.payload.error.data.stack[0].format.toString(), false);
+          else if (err)
+            self._message.open('error', err.toString(), false);
+          else
+            self._message.open('success', 'Vote submitted', false);
+        }
+      );
+    }
+
+    commentPost(){
+      var self = this;
+      self.setState({loading: true});
+      steem.broadcast.comment(
+        self.state.signerPostKey,
+        self.state.targetAuthor,
+        self.state.targetPermlink,
+        self.state.signerUsername,
+        self.state.targetPermlink+"-"+moment().toISOString().replace(/[-:.]/g,"").toLowerCase(),
+        "",
+        self.state.comment,
+        JSON.stringify({"app":"steemblog/0.6","format":"markdown+html","tags":[]}),
+        function(err, result) {
+          self.setState({loading: false, commentModal: false});
+          if (err && err.payload.error.data.stack[0].format)
+            self._message.open('error', err.payload.error.data.stack[0].format.toString(), false);
+          else if (err)
+            self._message.open('error', err.toString(), false);
+          else
+            self._message.open('success', 'Comment submitted', false);;
+      });
+    }
+
     async loadPost(id){
       var self = this;
       self.setState({loading: true});
@@ -338,7 +395,7 @@ export default class Home extends React.Component {
 
         // Show resteemed posts only in home
         posts = _.filter(posts, function(o) { return !o.resteem });
-        
+
       } else {
         window.location.hash = baseURL.split('/#/')[1];
       }
@@ -400,6 +457,123 @@ export default class Home extends React.Component {
 
     render() {
       var self = this;
+
+      const modalVote =
+        <ReactModal
+          isOpen={this.state.voteModal}
+          style={{
+            content : {
+              top                   : '40%',
+              left                  : '50%',
+              right                 : 'auto',
+              bottom                : 'auto',
+              marginRight           : '-50%',
+              transform             : 'translate(-50%, -50%)'
+            }
+          }}
+        >
+          <span class="fa fa-2x fa-times pull-right" onClick={() => this.setState({voteModal: false})}></span>
+          <h3>Vote</h3>
+          <div class="form-group">
+            <label>Signer Post Key</label>
+            <input
+              type="password"
+              class="form-control"
+              value={self.state.signerPostKey}
+              onChange={(event) => {
+                self.setState({ signerPostKey: event.target.value });
+              }}
+              placeholder='Your Post Key'
+            />
+          </div>
+          <div class="form-group">
+            <label>Signer Username</label>
+            <input
+              type="text"
+              class="form-control"
+              value={self.state.signerUsername}
+              onChange={(event) => {
+                self.setState({ signerUsername: event.target.value });
+              }}
+              placeholder='Your Username'
+            />
+          </div>
+          <div class="form-group">
+            <label>Vote Power</label>
+            <input
+              type="number"
+              min="-10000"
+              max="10000"
+              step="1000"
+              class="form-control"
+              value={self.state.voteWeight}
+              onChange={(event) => {
+                self.setState({ voteWeight: event.target.value });
+              }}
+            />
+          </div>
+          <div class="col-xs-12 text-center">
+            <div class="btn btn-default" onClick={() => self.votePost()}> Vote </div>
+          </div>
+        </ReactModal>
+
+      const modalComment =
+        <ReactModal
+          isOpen={this.state.commentModal}
+          style={{
+            content : {
+              top                   : '40%',
+              left                  : '50%',
+              right                 : 'auto',
+              bottom                : 'auto',
+              marginRight           : '-50%',
+              transform             : 'translate(-50%, -50%)'
+            }
+          }}
+        >
+          <span class="fa fa-2x fa-times pull-right" onClick={() => this.setState({commentModal: false})}></span>
+          <h3>Vote</h3>
+          <div class="form-group">
+            <label>Signer Post Key</label>
+            <input
+              type="password"
+              class="form-control"
+              value={self.state.signerPostKey}
+              onChange={(event) => {
+                self.setState({ signerPostKey: event.target.value });
+              }}
+              placeholder='Your Post Key'
+            />
+          </div>
+          <div class="form-group">
+            <label>Signer Username</label>
+            <input
+              type="text"
+              class="form-control"
+              value={self.state.signerUsername}
+              onChange={(event) => {
+                self.setState({ signerUsername: event.target.value });
+              }}
+              placeholder='Your Username'
+            />
+          </div>
+          <div class="form-group">
+            <label>Comment</label>
+            <textarea
+              type="text"
+              class="form-control"
+              value={self.state.comment}
+              onChange={(event) => {
+                self.setState({ comment: event.target.value });
+              }}
+              style={{ resize: "none", width: "400px", height:"300px" }}
+              placeholder='Comment'
+            />
+          </div>
+          <div class="col-xs-12 text-center">
+            <div class="btn btn-default" onClick={() => self.commentPost()}> Comment </div>
+          </div>
+        </ReactModal>
 
       const STRINGS = this.state.strings;
 
@@ -503,6 +677,9 @@ export default class Home extends React.Component {
                 <div class="row comment whiteBox" >
                   <div class="col-xs-12">
                     <strong>@{reply.author}</strong> - {moment(reply.time).format('MMMM Do YYYY, h:mm:ss a')}
+                    <a class="pull-right" onClick={() => self.setState({commentModal: true, targetAuthor: reply.author, targetPermlink: reply.permlink})}>
+                      <span class="fa fa-mail-reply"></span>
+                    </a>
                     <h4 dangerouslySetInnerHTML={{"__html": converter.makeHtml(reply.body)}} ></h4>
                   </div>
                 </div>
@@ -537,7 +714,9 @@ export default class Home extends React.Component {
                   <a onClick={() => self.loadPosts(1, 'all', 'all')}><h3><span class="fa fa-arrow-left"></span> {STRINGS.goBack}</h3></a>
                 </div>
                 <div class="col-xs-3 text-center">
-                  <h3>{post.net_votes} <span class="fa fa-thumbs-up"></span></h3>
+                  <h3><a onClick={() => self.setState({voteModal: true, targetAuthor: post.author, targetPermlink: post.permlink, voteWeight: 10000})}>
+                    <span class="fa fa-plus-circle fa-0.5x"></span> <span class="fa fa-thumbs-up"></span>
+                  </a> {post.net_votes}</h3>
                 </div>
                 <div class="col-xs-3 text-center">
                   <h3>{post.children} <span class="fa fa-comments"></span></h3>
@@ -578,7 +757,11 @@ export default class Home extends React.Component {
                 <h4 class="shortBody">{text.substring(0,300)}</h4>
               </div>
               <div class="col-xs-4 text-center">
-                <h3>{post.net_votes} <span class="fa fa-thumbs-up"></span></h3>
+                <h3>
+                  <a onClick={() => self.setState({voteModal: true, targetAuthor: post.author, targetPermlink: post.permlink, voteWeight: 10000})}>
+                    {post.net_votes} <span class="fa fa-thumbs-up"></span>
+                  </a>
+                </h3>
               </div>
               <div class="col-xs-4 text-center">
                 <h3>{post.children} <span class="fa fa-comments"></span></h3>
@@ -605,9 +788,12 @@ export default class Home extends React.Component {
             <div>{error}</div>
           :
             <div class="container">
+              {modalVote}
+              {modalComment}
               <div class="row">
                 <div class="col-xs-12 col-sm-9">
                   {header}
+                  <Message ref={(c) => self._message = c}/>
                   { (self.state.posts.length == 0) ?
                     <div class="row post whiteBox text-center">
                       {STRINGS.noPosts}
