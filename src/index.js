@@ -7,6 +7,7 @@ import { HashRouter as Router, Route, Switch } from "react-router-dom";
 //Views
 import Home from "./views/Home";
 import Tools from "./views/Tools";
+import Publisher from "./views/Publisher";
 import Url from "./views/Url";
 import Error from "./views/Error";
 
@@ -22,6 +23,7 @@ ReactDOM.render(
     <Switch>
       <Route exact path="/" name="home" component={Home}></Route>
       <Route exact path="/tools" name="tools" component={Tools}></Route>
+      <Route exact path="/publisher" name="publisher" component={Publisher}></Route>
       <Route exact path="/url" name="url" component={Url}></Route>
       <Route name="home" component={Error}></Route>
     </Switch>
