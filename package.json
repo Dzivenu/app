@@ -6,7 +6,9 @@
   "version": "0.0.7",
   "main": "webpack-prod.config.js",
   "scripts": {
-    "start": "webpack-dev-server --config webpack-dev.config.js ",
+    "server": "node server.js --dev",
+    "dev": "node server.js --dev",
+    "start": "webpack --config webpack-dev.config.js ",
     "build": "webpack --config webpack-prod.config.js"
   },
   "dependencies": {
@@ -31,8 +33,7 @@
     "react": "^15.3.2",
     "react-dom": "^15.3.2",
     "react-modal": "^1.7.7",
-    "react-router": "^4.1.1",
-    "react-router-config": "^1.0.0-beta.3",
+    "react-router": "^3.0.5",
     "react-social": "^1.6.1",
     "showdown": "^1.6.4",
     "showdown-youtube": "^1.2.1",

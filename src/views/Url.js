@@ -1,5 +1,5 @@
 import React from 'react';
-import {Link} from "react-router-dom";
+import {Link} from "react-router";
 
 import steem from 'steem';
 import moment from 'moment';
@@ -59,7 +59,7 @@ export default class GetURL extends React.Component {
     generateUrl(username, title, fb, twitter, linkedin, github, resteem){
       var baseURL = 'Username Required';
       if (username.length > 0){
-        baseURL = 'http://'+window.location.host+'/#/';
+        baseURL = 'http://'+window.location.host+'/';
         baseURL += '?user='+username;
         if (title.length > 0){
           baseURL += '&title='+title;
@@ -108,7 +108,7 @@ export default class GetURL extends React.Component {
       const header =
         <div class="row whiteBox">
           <div class="col-xs-12 text-center">
-            <h1><a href="/#/"><span class="fa fa-mail-reply pull-left"></span></a> SteemBlog URL </h1>
+            <h1><a href="/"><span class="fa fa-mail-reply pull-left"></span></a> SteemBlog URL </h1>
           </div>
         </div>;
 

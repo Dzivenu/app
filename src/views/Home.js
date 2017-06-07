@@ -1,5 +1,5 @@
 import React from 'react';
-import {Link} from "react-router-dom";
+import {Link} from "react-router";
 
 import steem from 'steem';
 import moment from 'moment';
@@ -24,7 +24,7 @@ let config = require('../config.json');
 
 const loadFromURL = true;
 
-var baseURL = 'http://'+window.location.host+'/#/';
+var baseURL = 'http://'+window.location.host+'/';
 
 var showdown  = require('showdown');
 showdown.setFlavor('github');
@@ -74,6 +74,10 @@ export default class Home extends React.Component {
         return null;
       }
       console.log(window.location)
+      // window.location.href.substr(0, window.location.href.indexOf('#'))
+
+      window.history.back(1);
+
       if (loadFromURL){
 
         config = {
@@ -88,9 +92,9 @@ export default class Home extends React.Component {
           }
         }
 
-        if (getParameter('user')){
-          config.steem.username = getParameter('user');
-          baseURL += (baseURL.indexOf('?') > 0) ? '&user='+config.steem.username : '?user='+config.steem.username;
+        if (window.location.pathname.indexOf('@') == 1){
+          config.steem.username = window.location.pathname.substring(2);
+          baseURL += (baseURL.indexOf('?') > 0) ? '@'+config.steem.username : '@'+config.steem.username;
         }
         if (getParameter('title')){
           config.blogTitle = getParameter('title');
@@ -371,10 +375,10 @@ export default class Home extends React.Component {
     async loadPost(id){
       var self = this;
       self.setState({loading: true});
-      var actualHash = baseURL.split('/#/');
+      var actualHash = baseURL.split('/');
       window.location.hash = (actualHash[1].length > 0) ?
-        '#/'+actualHash[1]+'&id='+id
-        : '#/?id='+id;
+        actualHash[1]+'&id='+id
+        : '?id='+id;
       var posts = this.state.allPosts;
 
       var firstReplies = await steem.api.getContentReplies(config.steem.username, id)
@@ -400,16 +404,16 @@ export default class Home extends React.Component {
       var posts = self.state.allPosts;
       self.setState({loading: true});
       if (page > 1 || category != 'all' || month != 'all'){
-        var actualHash = baseURL.split('/#/');
+        var actualHash = baseURL.split('/');
         window.location.hash = (actualHash[1].length > 0) ?
-          '#/'+actualHash[1]+'&page='+page+'&category='+category+'&month='+month
-          : '#/?page='+page+'&category='+category+'&month='+month;
+          actualHash[1]+'&page='+page+'&category='+category+'&month='+month
+          : '?page='+page+'&category='+category+'&month='+month;
 
         // Show resteemed posts only in home
         posts = _.filter(posts, function(o) { return !o.resteem });
 
       } else {
-        window.location.hash = baseURL.split('/#/')[1];
+        window.location.hash = baseURL.split('/')[1];
       }
 
       // Filter by category

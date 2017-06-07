@@ -206,7 +206,7 @@ export default class Publisher extends React.Component {
         <div class="row">
           <div class="col-xs-3"></div>
           <div class="col-xs-6 text-center whiteBox">
-            <h1><a href="/#/"><span class="fa fa-mail-reply pull-left"></span></a> SteemBlog Publisher </h1>
+            <h1><a href="/"><span class="fa fa-mail-reply pull-left"></span></a> SteemBlog Publisher </h1>
           </div>
         </div>;
 

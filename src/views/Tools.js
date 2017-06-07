@@ -143,7 +143,7 @@ export default class Tools extends React.Component {
       const header =
         <div class="row whiteBox">
           <div class="col-xs-12 text-center">
-            <h1><a href="/#/"><span class="fa fa-mail-reply pull-left"></span></a> SteemBlog Tools </h1>
+            <h1><a href="/"><span class="fa fa-mail-reply pull-left"></span></a> SteemBlog Tools </h1>
           </div>
         </div>;
 
