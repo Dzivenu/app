@@ -36,11 +36,26 @@ showdown.setOption('ghMentionsLink', 'https://steemit.com/@{u}');
 showdown.setOption('openLinksInNewWindow', true);
 
 require('showdown-youtube');
-var converter = new showdown.Converter({extensions: ['youtube', {
-  type: 'lang',
-  regex: /([a-z\-_0-9\/\:\.]*\.(jpg|jpeg|png|gif))/ig,
-  replace: '<div class="row row-image text-center"><img src="$1" width="100%" height="auto"/></div>'
-}]});
+var converter = new showdown.Converter({
+  extensions: [
+    'youtube',
+    {
+      type: 'lang',
+      regex: /([a-z\-_0-9\/\:\.]*\.(jpg|jpeg|png|gif))/ig,
+      replace: '<div class="row row-image text-center"><img src="$1" width="100%" height="auto"/></div>'
+    },
+    {
+      type: 'lang',
+      regex: /(?:http?s?:\/\/)?(?:www\.)?(?:vimeo\.com)\/?(.+)/g,
+      replace: '<div class="row text-center"><iframe width="420" height="345" src="//player.vimeo.com/video/$1" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe></div>'
+    },
+    {
+      type: 'lang',
+      regex: /(?:http?s?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/g,
+      replace: '<div class="row text-center"><iframe width="420" height="345" src="http://www.youtube.com/embed/$1" frameborder="0" allowfullscreen></iframe></div>'
+    }
+  ]
+});
 
 export default class Home extends React.Component {
 
@@ -189,20 +204,33 @@ export default class Home extends React.Component {
               if ((history[i][1].op[0] == 'comment')
                 && (history[i][1].op[1].parent_author == "")
                 && (history[i][1].op[1].author == username)
-                && ( _.findIndex(posts, {permlink: history[i][1].op[1].permlink }) < 0)
               ) {
                   var cats = JSON.parse(history[i][1].op[1].json_metadata).tags;
                   // Capitalize first letter
-                  cats.forEach(function(tag, i){
-                    if (tag)
-                      cats[i] = tag.charAt(0).toUpperCase() + tag.slice(1);
-                  });
-                  posts.push({
-                    permlink: history[i][1].op[1].permlink,
-                    categories: cats,
-                    created: history[i][1].timestamp,
-                    resteem: false
-                  })
+
+                  if (Array.isArray(cats) && typeof cats[0] == 'string')
+                    cats.forEach(function(tag, i){
+                      if (tag)
+                        cats[i] = tag.charAt(0).toUpperCase() + tag.slice(1);
+                    });
+                  else
+                    cats = [cats];
+                  if ( _.findIndex(posts, {permlink: history[i][1].op[1].permlink }) >= 0){
+                    posts[_.findIndex(posts, {permlink: history[i][1].op[1].permlink })] = {
+                      permlink: history[i][1].op[1].permlink,
+                      categories: cats,
+                      created: history[i][1].timestamp,
+                      resteem: false
+                    };
+                  } else {
+                    posts.push({
+                      permlink: history[i][1].op[1].permlink,
+                      categories: cats,
+                      created: history[i][1].timestamp,
+                      resteem: false
+                    })
+                  }
+
                 }
 
               if ( config.showResteem
@@ -361,26 +389,10 @@ export default class Home extends React.Component {
       }
 
       var post = await steem.api.getContent(config.steem.username, id)
-      post.body = self.convertVideos(post.body);
       post.replies = await getChildrenReplies(firstReplies);
       post = _.merge(posts[ _.findIndex(posts, {permlink: post.permlink }) ], post);
       self.setState({postID: id, page: 1, category: 'all', month: 'all', posts: [post], loading: false});
 
-    }
-
-    // Function to convert video and youtube links to video player
-    convertVideos(html){
-      var pattern1 = /(?:http?s?:\/\/)?(?:www\.)?(?:vimeo\.com)\/?(.+)/g;
-      var pattern2 = /(?:http?s?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/g;
-      if (pattern1.test(html)) {
-        var replacement = '<div class="row text-center"><iframe width="420" height="345" src="//player.vimeo.com/video/$1" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe></div>';
-        var html = html.replace(pattern1, replacement);
-      }
-      if (pattern2.test(html)) {
-        var replacement = '<div class="row text-center"><iframe width="420" height="345" src="http://www.youtube.com/embed/$1" frameborder="0" allowfullscreen></iframe></div>';
-        var html = html.replace(pattern2, replacement);
-      }
-      return html;
     }
 
     loadPosts(page, category, month){
@@ -437,7 +449,6 @@ export default class Home extends React.Component {
 
         // Convert video in all posts
         postsContent.map(function(post, i){
-          post.body = self.convertVideos(post.body);
           post = _.merge(posts[i], post);
         });
         console.log('Posts to show:', posts);
@@ -595,7 +606,7 @@ export default class Home extends React.Component {
               <h2>Invalid URL parameters.</h2>
               <h2>Go to <Link to="url">URL Generator</Link> to generate your blog url.</h2>
               <br></br>
-              <h2>Go to <Link to="tools">SteemBlog Tools</Link> to vote, comment and publish.</h2>
+              <h2>Go to <Link to="publisher">SteemBlog Publisher</Link> to publish new posts.</h2>
               <br></br>
             </div>
           </div>
@@ -719,7 +730,9 @@ export default class Home extends React.Component {
                   </a> {post.net_votes}</h3>
                 </div>
                 <div class="col-xs-3 text-center">
-                  <h3>{post.children} <span class="fa fa-comments"></span></h3>
+                  <h3><a onClick={() => self.setState({commentModal: true, targetAuthor: post.author, targetPermlink: post.permlink})}>
+                    <span class="fa fa-pencil-square"></span>
+                  </a> {post.children} <span class="fa fa-comments"></span></h3>
                 </div>
                 <div class="col-xs-3 text-center">
                   <a href={"https://steemit.com/@"+config.steem.username+"/"+post.permlink}>
