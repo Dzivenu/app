@@ -53,6 +53,11 @@ var converter = new showdown.Converter({
       type: 'lang',
       regex: /(?:http?s?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/g,
       replace: '<div class="row text-center"><iframe width="420" height="345" src="http://www.youtube.com/embed/$1" frameborder="0" allowfullscreen></iframe></div>'
+    },
+    {
+      type: 'lang',
+      regex: /\!\[][(][)]/g,
+      replace: ''
     }
   ]
 });
@@ -441,8 +446,9 @@ export default class Home extends React.Component {
 
       self.setState({loading: true});
 
-      posts = _.filter(posts, function(o) { return !o.resteem });
-      console.log(page, category, month)
+      if (!config.showResteem)
+        posts = _.filter(posts, function(o) { return !o.resteem });
+
       // Filter by category
       if (category && category != 'all'){
         posts = _.filter(posts, function(o) { return o.categories.indexOf(category.charAt(0).toUpperCase()+category.slice(1)) > -1 });
@@ -801,7 +807,7 @@ export default class Home extends React.Component {
                 </div>
               }
               <div class="col-xs-12">
-                <h4 class="shortBody">{text.substring(0,300)}</h4>
+                <h4 class="shortBody">{text.replace(/\!\[][(][)]/g, '').substring(0,300)}</h4>
               </div>
               <div class="col-xs-4 text-center">
                 <h3>
