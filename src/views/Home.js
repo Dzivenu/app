@@ -578,12 +578,13 @@ export default class Home extends React.Component {
               right                 : 'auto',
               bottom                : 'auto',
               marginRight           : '-50%',
+              maxHeight             : '500px',
               transform             : 'translate(-50%, -50%)'
             }
           }}
         >
           <span class="fa fa-2x fa-times pull-right" onClick={() => this.setState({commentModal: false})}></span>
-          <h3>Vote</h3>
+          <h3>Comment</h3>
           <div class="form-group">
             <label>Signer Post Key</label>
             <input
@@ -617,7 +618,7 @@ export default class Home extends React.Component {
               onChange={(event) => {
                 self.setState({ comment: event.target.value });
               }}
-              style={{ resize: "none", width: "400px", height:"300px" }}
+              style={{ resize: "none", width: "400px", height:"150px" }}
               placeholder='Comment'
             />
           </div>
@@ -659,7 +660,7 @@ export default class Home extends React.Component {
               {config.blogTitle}
             </a>
             <a href={"https://steemit.com/@"+config.steem.username} target="_blank" class="fa iconTitle pull-right">
-              <img src="assets/steemit-black.png" class="steemit-icon-big"></img>
+              <div class="steemit-icon-big" ></div>
             </a>
             { config.facebookLink ? <a href={config.facebookLink} target="_blank" class="fa fa-facebook iconTitle pull-right"></a> : <a/>}
             { config.twitterLink ? <a href={config.twitterLink} target="_blank" class="fa fa-twitter iconTitle pull-right"></a> : <a/>}
@@ -669,7 +670,7 @@ export default class Home extends React.Component {
         </div>;
 
       const sidebar =
-        <div class="hidden-xs col-sm-3">
+        <div class="hidden-xs col-sm-3 sidebar">
           <div class="whiteBox margin-top text-center">
             <h3 class="no-margin margin-bottom">{STRINGS.about}</h3>
             <h4>{self.state.profile.about}</h4>
@@ -680,19 +681,19 @@ export default class Home extends React.Component {
           </div>
           <div class="whiteBox margin-top text-center">
             <h3 class="no-margin margin-bottom">{STRINGS.languages}</h3>
-            <h4><a onClick={()=>self.changeLanguage('es')}>{STRINGS.spanish}</a></h4>
-            <h4><a onClick={()=>self.changeLanguage('en')}>{STRINGS.english}</a></h4>
+            <h5><a onClick={()=>self.changeLanguage('es')}>{STRINGS.spanish}</a></h5>
+            <h5><a onClick={()=>self.changeLanguage('en')}>{STRINGS.english}</a></h5>
           </div>
           <div class="whiteBox margin-top text-center">
             <h3 class="no-margin margin-bottom">{STRINGS.categories}</h3>
             {self.state.categories.map( function(cat, index){
-              return(<h4 key={index}><a onClick={() => self.goTo(1, cat.name, 'all')}>{cat.name} ({cat.quantity})</a></h4>)
+              return(<h5 key={index}><a onClick={() => self.goTo(1, cat.name, 'all')}>{cat.name} ({cat.quantity})</a></h5>)
             })}
           </div>
           <div class="whiteBox margin-top text-center">
             <h3 class="no-margin margin-bottom">{STRINGS.archives}</h3>
             {self.state.months.map( function(month, index){
-              return(<h4 key={index}><a onClick={() => self.goTo(1, 'all', month.year+'/'+month.month)}>{month.year} / {month.month} ({month.quantity})</a></h4>)
+              return(<h5 key={index}><a onClick={() => self.goTo(1, 'all', month.year+'/'+month.month)}>{month.year} / {month.month} ({month.quantity})</a></h5>)
             })}
           </div>
         </div>;
@@ -765,18 +766,22 @@ export default class Home extends React.Component {
                   <a onClick={() => self.goTo(1, 'all', 'all')}><h3><span class="fa fa-arrow-left"></span> {STRINGS.goBack}</h3></a>
                 </div>
                 <div class="col-xs-3 text-center">
-                  <h3><a onClick={() => self.setState({voteModal: true, targetAuthor: post.author, targetPermlink: post.permlink, voteWeight: 10000})}>
-                    <span class="fa fa-plus-circle fa-0.5x"></span> <span class="fa fa-thumbs-up"></span>
-                  </a> {post.net_votes}</h3>
+                  <h3>
+                    <a onClick={() => self.setState({voteModal: true, targetAuthor: post.author, targetPermlink: post.permlink, voteWeight: 10000})}>
+                      <span class="fa fa-thumbs-up"></span> {post.net_votes}
+                     </a>
+                  </h3>
                 </div>
                 <div class="col-xs-3 text-center">
-                  <h3><a onClick={() => self.setState({commentModal: true, targetAuthor: post.author, targetPermlink: post.permlink})}>
-                    <span class="fa fa-pencil-square"></span>
-                  </a> {post.children} <span class="fa fa-comments"></span></h3>
+                  <h3>
+                    <a onClick={() => self.setState({commentModal: true, targetAuthor: post.author, targetPermlink: post.permlink})}>
+                      {post.children} <span class="fa fa-comments"></span>
+                    </a>
+                  </h3>
                 </div>
                 <div class="col-xs-3 text-center">
                   <a href={"https://steemit.com/@"+config.steem.username+"/"+post.permlink}>
-                    <h3>{STRINGS.on} Steemit <img src="assets/steemit-black.png" class="steemit-icon-small"></img></h3>
+                    <h3>{STRINGS.on} Steemit <div class="steemit-icon-small pull-right"></div></h3>
                   </a>
                 </div>
               </div>
@@ -810,22 +815,26 @@ export default class Home extends React.Component {
                 <h4 class="shortBody">{text.replace(/\!\[][(][)]/g, '').substring(0,300)}</h4>
               </div>
               <div class="col-xs-4 text-center">
-                <h3>
+                <h4>
                   <a onClick={() => self.setState({voteModal: true, targetAuthor: post.author, targetPermlink: post.permlink, voteWeight: 10000})}>
                     {post.net_votes} <span class="fa fa-thumbs-up"></span>
                   </a>
-                </h3>
+                </h4>
               </div>
               <div class="col-xs-4 text-center">
-                <h3>{post.children} <span class="fa fa-comments"></span></h3>
+                <h4>
+                  <a onClick={() => self.setState({commentModal: true, targetAuthor: post.author, targetPermlink: post.permlink})}>
+                    {post.children} <span class="fa fa-comments"></span>
+                  </a>
+                </h4>
               </div>
               <div class="col-xs-4 text-center">
                 { post.resteem ?
                   <a href={"https://steemit.com/@"+config.steem.username+"/"+post.permlink}>
-                    <h3>{STRINGS.on} Steemit <img src="assets/steemit-black.png" class="steemit-icon-small"></img></h3>
+                    <h4>{STRINGS.on} Steemit <div class="steemit-icon-small pull-right"></div></h4>
                   </a>
                 :
-                  <a onClick={() => self.goToPost(post.permlink)}><h3>{STRINGS.viewPost}</h3></a>
+                  <a onClick={() => self.goToPost(post.permlink)}><h4>{STRINGS.viewPost}</h4></a>
                 }
               </div>
             </div>
