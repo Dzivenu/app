@@ -19,17 +19,20 @@ Example:
   "linkedinLink": "https://ar.linkedin.com/in/augustolemble",
   "githubLink": "https://github.com/AugustoL",
   "steem": {
-    "username": "augustol",
-    "fromPost": 10000
+    "username": "augustol"
   }
 }
 ```
 
-Edit the index.html file on src folder with teh correct values on header tag.
+Edit the index.html file on src folder with the correct values on header tag.
 
 ## Develop
 
-Run `npm start` to develop and enable the hot reloading.
+Edit the const ON_SERVER on src/index.js and src/views/Home.js to run it on a server on client.
+
+Run the app just like in a server with `npm start` && `npm run dev` to develop.
+
+Run tha app only on clinet side with `npm run start-dev` to develop and enable the hot reloading.
 
 ## Build
 

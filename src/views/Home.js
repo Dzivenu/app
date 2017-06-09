@@ -22,9 +22,9 @@ var FacebookButton = ReactSocial.FacebookButton;
 const languages = require('../languages.json');
 let config = require('../config.json');
 
-const loadFromURL = true;
+const ON_SERVER = true;
 
-var baseURL = 'http://'+window.location.host+'/';
+var searchParams = {};
 
 var showdown  = require('showdown');
 showdown.setFlavor('github');
@@ -62,10 +62,10 @@ export default class Home extends React.Component {
     constructor() {
       super();
       function getParameter(paramName) {
-        var searchString = window.location.hash.substring(3),
+        var searchString = ON_SERVER ? window.location.search.replace('#','').substring(1) : window.location.hash.substring(3),
         i, val, params = searchString.split("&");
 
-        for (i=0;i<params.length;i++) {
+        for (i = 0; i < params.length; i ++) {
           val = params[i].split("=");
           if (val[0] == paramName) {
             return val[1].replace(/%20/g, ' ');
@@ -73,12 +73,23 @@ export default class Home extends React.Component {
         }
         return null;
       }
-      console.log(window.location)
-      // window.location.href.substr(0, window.location.href.indexOf('#'))
 
-      window.history.back(1);
+      function getSearchParams() {
+        var searchString = ON_SERVER ? window.location.search.replace('#','').substring(1) : window.location.hash.substring(3),
+        i, val, params = searchString.split("&");
+        var toReturn = {};
+        for (i = 0; i < params.length; i ++) {
+          val = params[i].split("=");
+          if (val[1])
+            toReturn[val[0]] = val[1].replace(/%20/g, ' ');
+        }
+        return toReturn;
+      }
 
-      if (loadFromURL){
+      searchParams = getSearchParams();
+      console.log('Serach parameters',searchParams);
+
+      if (ON_SERVER){
 
         config = {
           "blogTitle": "",
@@ -92,43 +103,22 @@ export default class Home extends React.Component {
           }
         }
 
-        if (window.location.pathname.indexOf('@') == 1){
+        if (window.location.pathname.indexOf('@') == 1)
           config.steem.username = window.location.pathname.substring(2);
-          baseURL += (baseURL.indexOf('?') > 0) ? '@'+config.steem.username : '@'+config.steem.username;
-        }
-        if (getParameter('title')){
-          config.blogTitle = getParameter('title');
-          baseURL += (baseURL.indexOf('?') > 0) ? '&title='+config.blogTitle : '?title='+config.blogTitle;
-        } else {
-          config.blogTitle = '@' + config.steem.username + ' SteemBlog';
-        }
-        if (getParameter('fb')){
-          config.facebookLink = getParameter('fb');
-          baseURL += (baseURL.indexOf('?') > 0) ? '&fb='+config.facebookLink : '?fb='+config.facebookLink;
-        }
-        if (getParameter('twitter')){
-          config.twitterLink = getParameter('twitter');
-          baseURL += (baseURL.indexOf('?') > 0) ? '&twitter='+config.twitterLink : '?twitter='+config.twitterLink;
-        }
-        if (getParameter('linkedin')){
-          config.linkedinLink = getParameter('linkedin');
-          baseURL += (baseURL.indexOf('?') > 0) ? '&linkedin='+config.linkedinLink : '?linkedin='+config.linkedinLink;
-        }
-        if (getParameter('github')){
-          config.githubLink = getParameter('github');
-          baseURL += (baseURL.indexOf('?') > 0) ? '&github='+config.githubLink : '?github='+config.githubLink;
-        }
-        if (getParameter('r')){
-          config.showResteem = true;
-          baseURL += (baseURL.indexOf('?') > 0) ? '&r='+config.showResteem : '?r='+config.showResteem;
-        }
+
+        config.blogTitle = searchParams.title || '@'+config.steem.username+' SteemBlog';
+        config.facebookLink = searchParams.fb || '';
+        config.twitterLink = searchParams.twitter || '';
+        config.linkedinLink = searchParams.linkedin || '';
+        config.githubLink = searchParams.github || '';
+        config.showResteem = (searchParams.r) ? true : false;
+
       }
-      console.log('Base URL:',baseURL);
       console.log('Config:',config);
 
       this.state = {
         loading: true,
-        postID: getParameter('id') || 0,
+        postID: getParameter('id') || '',
         page: getParameter('page') || 1,
         category: getParameter('cat') || 'all',
         month: getParameter('month') || 'all',
@@ -170,6 +160,34 @@ export default class Home extends React.Component {
             self.loadPosts(self.state.page, self.state.category, self.state.month);
         });
 
+    }
+
+    buildSearchParams(params){
+      console.log(window.location)
+      const keys = Object.keys(params);
+      let search = '';
+      if (keys.length > 0){
+        if (params[keys[0]])
+          search += '?'+keys[0]+'='+params[keys[0]];
+        for (var i = 1; i < keys.length; i++) {
+          if ((params[keys[i]]) && (search.length == 0))
+            search += '?'+keys[i]+'='+params[keys[i]];
+          else if (params[keys[i]])
+            search += '&'+keys[i]+'='+params[keys[i]];
+        }
+      }
+      console.log(params);
+      if (ON_SERVER){
+        window.location.search = search;
+      } else {
+        window.location.hash = search;
+
+        if (params.id){
+          this.loadPost(params.id);
+        } else {
+          this.loadPosts(params.page || 1, params.cat || 'all', params.month || 'all');
+        }
+      }
     }
 
     loadData(){
@@ -375,10 +393,12 @@ export default class Home extends React.Component {
     async loadPost(id){
       var self = this;
       self.setState({loading: true});
-      var actualHash = baseURL.split('/');
-      window.location.hash = (actualHash[1].length > 0) ?
-        actualHash[1]+'&id='+id
-        : '?id='+id;
+      console.log(searchParams);
+      if (!searchParams.id || (searchParams.id && searchParams.id != id)){
+        searchParams.id = id;
+        self.buildSearchParams(searchParams);
+      }
+
       var posts = this.state.allPosts;
 
       var firstReplies = await steem.api.getContentReplies(config.steem.username, id)
@@ -399,34 +419,43 @@ export default class Home extends React.Component {
 
     }
 
+    goToPost(post){
+      searchParams.id = post;
+      searchParams.cat = null;
+      searchParams.month = null;
+      searchParams.page = null;
+      this.buildSearchParams(searchParams);
+    }
+
+    goTo(page, category, month){
+      searchParams.page = page;
+      searchParams.cat = category;
+      searchParams.month = month;
+      searchParams.id = null;
+      this.buildSearchParams(searchParams);
+    }
+
     loadPosts(page, category, month){
       var self = this;
       var posts = self.state.allPosts;
+
       self.setState({loading: true});
-      if (page > 1 || category != 'all' || month != 'all'){
-        var actualHash = baseURL.split('/');
-        window.location.hash = (actualHash[1].length > 0) ?
-          actualHash[1]+'&page='+page+'&category='+category+'&month='+month
-          : '?page='+page+'&category='+category+'&month='+month;
 
-        // Show resteemed posts only in home
-        posts = _.filter(posts, function(o) { return !o.resteem });
-
-      } else {
-        window.location.hash = baseURL.split('/')[1];
+      posts = _.filter(posts, function(o) { return !o.resteem });
+      console.log(page, category, month)
+      // Filter by category
+      if (category && category != 'all'){
+        posts = _.filter(posts, function(o) { return o.categories.indexOf(category.charAt(0).toUpperCase()+category.slice(1)) > -1 });
       }
 
-      // Filter by category
-      if (category != 'all')
-        posts = _.filter(posts, function(o) { return o.categories.indexOf(category) > -1 });
-
       // Filer by month
-      if (month != 'all')
+      if (category && month != 'all'){
         posts = _.filter(posts, function(o) {
           return (new Date(o.created).getMonth()+1 == month.split('/')[1]) && (new Date(o.created).getFullYear() == month.split('/')[0])
         });
-
-      posts = posts.slice( (page-1)*10, (page)*10);
+      }
+      if (page)
+        posts = posts.slice( (page-1)*10, (page)*10);
 
       // Get all posts content
       Promise.all(posts.map( function(post, index){
@@ -456,6 +485,7 @@ export default class Home extends React.Component {
           post = _.merge(posts[i], post);
         });
         console.log('Posts to show:', posts);
+
         self.setState({postID: '', page: page, category: category, month: month, posts: posts, loading: false});
       }).catch(function(err){
         console.error(err);
@@ -608,9 +638,9 @@ export default class Home extends React.Component {
             <div class="col-xs-12 whiteBox">
               <br></br>
               <h2>Invalid URL parameters.</h2>
-              <h2>Go to <Link to="url">URL Generator</Link> to generate your blog url.</h2>
+              <h2>Go to <a href={ON_SERVER ? '/url' : '/#/url'}>URL Generator</a> to generate your blog url.</h2>
               <br></br>
-              <h2>Go to <Link to="publisher">SteemBlog Publisher</Link> to publish new posts.</h2>
+              <h2>Go to <a href={ON_SERVER ? '/publisher' : '/#/publisher'}>SteemBlog Publisher</a> to publish new posts.</h2>
               <br></br>
             </div>
           </div>
@@ -619,7 +649,7 @@ export default class Home extends React.Component {
       const header =
         <div class="row post whiteBox titlebox">
           <h1>
-            <a class="titleLink" onClick={() => self.loadPosts(1, 'all', 'all')}>
+            <a class="titleLink" onClick={() => self.goTo(1, 'all', 'all')}>
               {config.blogTitle}
             </a>
             <a href={"https://steemit.com/@"+config.steem.username} target="_blank" class="fa iconTitle pull-right">
@@ -650,13 +680,13 @@ export default class Home extends React.Component {
           <div class="whiteBox margin-top text-center">
             <h3 class="no-margin margin-bottom">{STRINGS.categories}</h3>
             {self.state.categories.map( function(cat, index){
-              return(<h4 key={index}><a onClick={() => self.loadPosts(1, cat.name, 'all')}>{cat.name} ({cat.quantity})</a></h4>)
+              return(<h4 key={index}><a onClick={() => self.goTo(1, cat.name, 'all')}>{cat.name} ({cat.quantity})</a></h4>)
             })}
           </div>
           <div class="whiteBox margin-top text-center">
             <h3 class="no-margin margin-bottom">{STRINGS.archives}</h3>
             {self.state.months.map( function(month, index){
-              return(<h4 key={index}><a onClick={() => self.loadPosts(1, 'all', month.year+'/'+month.month)}>{month.year} / {month.month} ({month.quantity})</a></h4>)
+              return(<h4 key={index}><a onClick={() => self.goTo(1, 'all', month.year+'/'+month.month)}>{month.year} / {month.month} ({month.quantity})</a></h4>)
             })}
           </div>
         </div>;
@@ -664,9 +694,9 @@ export default class Home extends React.Component {
       const paginator =
         <nav>
           <ul class="pager text-center">
-            {self.state.page > 1 ?
+            {parseInt(self.state.page) > 1 ?
               <li class="pull-left">
-                <a onClick={ ()=> self.loadPosts(self.state.page-1, self.state.category, self.state.month)}>
+                <a onClick={ ()=> self.goTo(parseInt(self.state.page)-1, self.state.category, self.state.month)}>
                   {STRINGS.previous}
                 </a>
               </li>
@@ -675,7 +705,7 @@ export default class Home extends React.Component {
             <li class="text-center"><a>{STRINGS.page} {self.state.page}</a></li>
             { (self.state.posts.length == 10) ?
               <li class="pull-right">
-                <a onClick={ ()=> self.loadPosts(self.state.page+1, self.state.category, self.state.month)}>
+                <a onClick={ ()=> self.goTo(parseInt(self.state.page)+1, self.state.category, self.state.month)}>
                   {STRINGS.next}
                 </a>
               </li>
@@ -726,7 +756,7 @@ export default class Home extends React.Component {
               </div>
               <div class="row">
                 <div class="col-xs-3 text-center">
-                  <a onClick={() => self.loadPosts(1, 'all', 'all')}><h3><span class="fa fa-arrow-left"></span> {STRINGS.goBack}</h3></a>
+                  <a onClick={() => self.goTo(1, 'all', 'all')}><h3><span class="fa fa-arrow-left"></span> {STRINGS.goBack}</h3></a>
                 </div>
                 <div class="col-xs-3 text-center">
                   <h3><a onClick={() => self.setState({voteModal: true, targetAuthor: post.author, targetPermlink: post.permlink, voteWeight: 10000})}>
@@ -766,7 +796,7 @@ export default class Home extends React.Component {
                 </div>
               :
                 <div class="col-xs-12">
-                  <a onClick={() => self.loadPost(post.permlink)}><h2>{post.title}</h2></a>
+                  <a onClick={() => self.goToPost(post.permlink)}><h2>{post.title}</h2></a>
                   <h4>{STRINGS.posted} {post.created} {STRINGS.in} {post.category.charAt(0).toUpperCase() + post.category.slice(1)}</h4>
                 </div>
               }
@@ -789,7 +819,7 @@ export default class Home extends React.Component {
                     <h3>{STRINGS.on} Steemit <img src="assets/steemit-black.png" class="steemit-icon-small"></img></h3>
                   </a>
                 :
-                  <a onClick={() => self.loadPost(post.permlink)}><h3>{STRINGS.viewPost}</h3></a>
+                  <a onClick={() => self.goToPost(post.permlink)}><h3>{STRINGS.viewPost}</h3></a>
                 }
               </div>
             </div>

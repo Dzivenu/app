@@ -18,18 +18,6 @@ export default class GetURL extends React.Component {
 
     constructor() {
       super();
-      function getParameter(paramName) {
-        var searchString = window.location.hash.substring(3),
-        i, val, params = searchString.split("&");
-
-        for (i=0;i<params.length;i++) {
-          val = params[i].split("=");
-          if (val[0] == paramName) {
-            return val[1].replace('%20', ' ');
-          }
-        }
-        return null;
-      }
 
       this.state = {
         loading: true,
@@ -60,24 +48,24 @@ export default class GetURL extends React.Component {
       var baseURL = 'Username Required';
       if (username.length > 0){
         baseURL = 'http://'+window.location.host+'/';
-        baseURL += '?user='+username;
+        baseURL += '@'+username;
         if (title.length > 0){
-          baseURL += '&title='+title;
+          baseURL += baseURL.indexOf('?') >= 0 ? '&title='+title : '?title='+title;
         }
         if (fb.length > 0){
-          baseURL += '&fb='+fb;
+          baseURL += baseURL.indexOf('?') >= 0 ? '&fb='+fb : '?fb='+fb;
         }
         if (twitter.length > 0){
-          baseURL += '&twitter='+twitter;
+          baseURL += baseURL.indexOf('?') >= 0 ? '&twitter='+twitter : '?twitter='+twitter;
         }
         if (linkedin.length > 0){
-          baseURL += '&linkedin='+linkedin;
+          baseURL += baseURL.indexOf('?') >= 0 ? '&linkedin='+linkedin : '?linkedin='+linkedin;
         }
         if (github.length > 0){
-          baseURL += '&github='+github;
+          baseURL += baseURL.indexOf('?') >= 0 ? '&github='+github : '?github='+github;
         }
         if (resteem){
-          baseURL += '&r=1';
+          baseURL += baseURL.indexOf('?') >= 0 ? '&r=1' : '?r=1';
         }
       }
       this.setState({url : baseURL});

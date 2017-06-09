@@ -6,10 +6,13 @@
   "version": "0.0.7",
   "main": "webpack-prod.config.js",
   "scripts": {
-    "server": "node server.js --dev",
+    "server": "node server.js",
+    "build": "webpack --config webpack-prod.config.js",
+    
     "dev": "node server.js --dev",
     "start": "webpack --config webpack-dev.config.js ",
-    "build": "webpack --config webpack-prod.config.js"
+
+    "start-dev": "webpack-dev-server --config webpack-dev.config.js "
   },
   "dependencies": {
     "async": "^2.4.1",
