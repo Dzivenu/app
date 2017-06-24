@@ -121,6 +121,8 @@ export default class Home extends React.Component {
         page: getParameter('page') || 1,
         category: getParameter('cat') || 'all',
         month: getParameter('month') || 'all',
+        loadingPosts: false,
+        loadingSidebar: true,
         info: {},
         posts: [],
         allPosts: [],
@@ -176,11 +178,7 @@ export default class Home extends React.Component {
               }
 
               self.loadData().then(function([profile, follow, history]){
-                self.setState({allPosts: history.posts, months: history.months, categories: history.categories, profile: profile, follow: follow});
-                if (self.state.postID.length > 0)
-                  self.loadPost(self.state.postID);
-                else
-                  self.loadPosts(self.state.page, self.state.category, self.state.month);
+                console.log('Finished loading');
               });
             } catch (e) {
               console.error(e);
@@ -221,77 +219,103 @@ export default class Home extends React.Component {
           until( function() {
             return (fromPost == 0);
           }, function(callback){
-            steem.api.getAccountHistory(userData.username, fromPost, (fromPost < 10000 && fromPost > 0) ? fromPost : 10000, function(err, toAdd) {
+            steem.api.getAccountHistory(userData.username, fromPost, (fromPost < 1000 && fromPost > 0) ? fromPost : 1000, function(err, toAdd) {
               if (err)
                 callback(err);
-              history.push(toAdd);
               fromPost = toAdd[0][0];
+              toAdd = _.orderBy(toAdd, function(h){ return -h[0]});
+              for (var i = 0; i < toAdd.length; i++) {
+                if ((toAdd[i][1].op[0] == 'comment')
+                  && (toAdd[i][1].op[1].parent_author == "")
+                  && (toAdd[i][1].op[1].author == username)
+                ) {
+                    var cats = JSON.parse(toAdd[i][1].op[1].json_metadata).tags;
+                    // Capitalize first letter
+                    if (Array.isArray(cats) && typeof cats[0] == 'string')
+                      cats.forEach(function(tag, i){
+                        if (tag)
+                          cats[i] = tag.charAt(0).toUpperCase() + tag.slice(1);
+                      });
+                    else
+                      cats = [cats];
+                    if ( _.findIndex(posts, {permlink: toAdd[i][1].op[1].permlink }) >= 0){
+                      posts[_.findIndex(posts, {permlink: toAdd[i][1].op[1].permlink })] = {
+                        permlink: toAdd[i][1].op[1].permlink,
+                        categories: cats,
+                        created: toAdd[i][1].timestamp,
+                        resteem: false
+                      };
+                    } else {
+                      posts.push({
+                        permlink: toAdd[i][1].op[1].permlink,
+                        categories: cats,
+                        created: toAdd[i][1].timestamp,
+                        resteem: false
+                      })
+                    }
+
+                  }
+
+                if ( userData.showResteem
+                  && (toAdd[i][1].op[0] == 'custom_json')
+                  && (toAdd[i][1].op[1].id == "follow")
+                  && (toAdd[i][1].op[1].json.indexOf("reblog") > 0)
+                  && ( _.findIndex(posts, {permlink: toAdd[i][1].op[1].permlink }) < 0)
+                ) {
+                    var parsed = JSON.parse(toAdd[i][1].op[1].json);
+                    posts.push({
+                      permlink: parsed[1].permlink,
+                      author: parsed[1].author,
+                      categories: [],
+                      date: new Date(),
+                      resteem: true
+                    })
+                  }
+              }
+
+              posts = _.filter(posts, function(o) { return (o.categories.indexOf('Test') < 0) });
+
+              // console.log('Posts', posts.length);
+              if ((self.state.postID.length > 0)
+                && ( _.findIndex(posts, {permlink: self.state.postID }) < 0)
+                && !self.state.loadingPosts
+                && (self.state.posts.length == 0)
+              ){
+                self.setState({allPosts: posts, loadingPosts: true});
+                self.loadPost(self.state.postID);
+              } else if ((posts.length > (self.state.page*10))
+                && !self.state.loadingPosts
+                && (self.state.posts.length == 0)
+              ){
+                self.setState({allPosts: posts, loadingPosts: true});
+                self.loadPosts(self.state.page, self.state.category, self.state.month);
+              }
+
+              history = _.unionBy(history, toAdd, '0');
+              history = _.orderBy(history, function(h){ return -h[0]});
               callback(null);
             })
           }, function(err){
 
+            if ((self.state.postID.length > 0)
+              && ( _.findIndex(posts, {permlink: self.state.postID }) < 0)
+              && !self.state.loadingPosts
+              && (self.state.posts.length == 0)
+            ){
+              self.setState({allPosts: posts, loadingPosts: true});
+              self.loadPost(self.state.postID);
+            } else if (!self.state.loadingPosts && (self.state.posts.length == 0)){
+              self.setState({allPosts: posts, loadingPosts: true});
+              self.loadPosts(self.state.page, self.state.category, self.state.month);
+            }
+
             if (err)
               console.error('Error getting all history:',err);
 
-            history = _.flatten(history);
-            history = _.orderBy(history, function(h){ return h[0]});
-            history = _.uniqBy(history, '0');
-
             console.log('Account',username,'history:',history);
 
-            for (var i = 0; i < history.length; i++) {
-              if ((history[i][1].op[0] == 'comment')
-                && (history[i][1].op[1].parent_author == "")
-                && (history[i][1].op[1].author == username)
-              ) {
-                  var cats = JSON.parse(history[i][1].op[1].json_metadata).tags;
-                  // Capitalize first letter
-
-                  if (Array.isArray(cats) && typeof cats[0] == 'string')
-                    cats.forEach(function(tag, i){
-                      if (tag)
-                        cats[i] = tag.charAt(0).toUpperCase() + tag.slice(1);
-                    });
-                  else
-                    cats = [cats];
-                  if ( _.findIndex(posts, {permlink: history[i][1].op[1].permlink }) >= 0){
-                    posts[_.findIndex(posts, {permlink: history[i][1].op[1].permlink })] = {
-                      permlink: history[i][1].op[1].permlink,
-                      categories: cats,
-                      created: history[i][1].timestamp,
-                      resteem: false
-                    };
-                  } else {
-                    posts.push({
-                      permlink: history[i][1].op[1].permlink,
-                      categories: cats,
-                      created: history[i][1].timestamp,
-                      resteem: false
-                    })
-                  }
-
-                }
-
-              if ( userData.showResteem
-                && (history[i][1].op[0] == 'custom_json')
-                && (history[i][1].op[1].id == "follow")
-                && (history[i][1].op[1].json.indexOf("reblog") > 0)
-                && ( _.findIndex(posts, {permlink: history[i][1].op[1].permlink }) < 0)
-              ) {
-                  var parsed = JSON.parse(history[i][1].op[1].json);
-                  posts.push({
-                    permlink: parsed[1].permlink,
-                    author: parsed[1].author,
-                    categories: [],
-                    date: new Date(),
-                    resteem: true
-                  })
-                }
-            }
-
             // Remove tests posts and reverse array to order by date
-            const myPosts = _.filter(posts, function(o) { return ((o.categories.indexOf('Test') < 0)&&(!o.resteem)); }).reverse();
-            posts = _.filter(posts, function(o) { return (o.categories.indexOf('Test') < 0) }).reverse();
+            const myPosts = _.filter(posts, function(o) { return ((o.categories.indexOf('Test') < 0)&&(!o.resteem)); });
 
             console.log('All account posts',posts);
 
@@ -316,7 +340,7 @@ export default class Home extends React.Component {
               else
                 _.find(months, {month : month, year: year}).quantity ++;
             }
-
+            self.setState({allPosts: posts, months: months, categories: categories, loadingSidebar: false});
             resolve({posts: posts, categories: categories, months: months});
           })
         });
@@ -334,6 +358,7 @@ export default class Home extends React.Component {
               console.log('Account',userData.username,'profile:', JSON.parse(accounts[0].json_metadata));
               profile = JSON.parse(accounts[0].json_metadata).profile;
               profile.reputation = steem.formatter.reputation(accounts[0].reputation);
+              self.setState({profile: profile});
               resolve(profile);
             }
           })
@@ -348,6 +373,7 @@ export default class Home extends React.Component {
               reject(err);
             else{
               console.log('Follow', follow);
+              self.setState({follow: follow});
               resolve(follow);
             }
           })
@@ -432,7 +458,7 @@ export default class Home extends React.Component {
       var post = await steem.api.getContent(userData.username, id)
       post.replies = await getChildrenReplies(firstReplies);
       post = _.merge(posts[ _.findIndex(posts, {permlink: post.permlink }) ], post);
-      self.setState({postID: id, page: 1, category: 'all', month: 'all', posts: [post], loading: false});
+      self.setState({postID: id, page: 1, category: 'all', month: 'all', posts: [post], loading: false, loadingPosts: false});
 
     }
 
@@ -504,7 +530,7 @@ export default class Home extends React.Component {
         });
         console.log('Posts to show:', posts);
 
-        self.setState({postID: '', page: page, category: category, month: month, posts: posts, loading: false});
+        self.setState({postID: '', page: page, category: category, month: month, posts: posts, loading: false, loadingPosts: false});
       }).catch(function(err){
         console.error(err);
       });
@@ -657,9 +683,9 @@ export default class Home extends React.Component {
             <div class="col-xs-12 whiteBox">
               <br></br>
               <h2>Invalid URL parameters.</h2>
-              <h2>Go to <a href={'/tools'}>Steemblog Tools</a> to upload your blog configuration.</h2>
+              <h2>Go to <a href="/tools">Steemblog Tools</a> to upload your blog configuration.</h2>
               <br></br>
-              <h2>Go to <a href={'/publisher'}>SteemBlog Publisher</a> to publish new posts.</h2>
+              <h2>Go to <a href="/publisher">SteemBlog Publisher</a> to publish new posts.</h2>
               <br></br>
             </div>
           </div>
@@ -683,31 +709,47 @@ export default class Home extends React.Component {
 
       const sidebar =
         <div class="hidden-xs col-sm-3 sidebar">
-          <div class="whiteBox margin-top text-center">
-            <h3 class="no-margin margin-bottom">{STRINGS.about}</h3>
-            <h4>{self.state.profile.about}</h4>
-            <h4>{self.state.profile.reputation} Reputation</h4>
-            <h4>{self.state.allPosts.length} Posts</h4>
-            <h4>{self.state.follow.follower_count} Followers</h4>
-            <h4>{self.state.follow.following_count} Following</h4>
-          </div>
-          <div class="whiteBox margin-top text-center">
-            <h3 class="no-margin margin-bottom">{STRINGS.languages}</h3>
-            <h5><a onClick={()=>self.changeLanguage('es')}>{STRINGS.spanish}</a></h5>
-            <h5><a onClick={()=>self.changeLanguage('en')}>{STRINGS.english}</a></h5>
-          </div>
-          <div class="whiteBox margin-top text-center">
-            <h3 class="no-margin margin-bottom">{STRINGS.categories}</h3>
-            {self.state.categories.map( function(cat, index){
-              return(<h5 key={index}><a onClick={() => self.goTo(1, cat.name, 'all')}>{cat.name} ({cat.quantity})</a></h5>)
-            })}
-          </div>
-          <div class="whiteBox margin-top text-center">
-            <h3 class="no-margin margin-bottom">{STRINGS.archives}</h3>
-            {self.state.months.map( function(month, index){
-              return(<h5 key={index}><a onClick={() => self.goTo(1, 'all', month.year+'/'+month.month)}>{month.year} / {month.month} ({month.quantity})</a></h5>)
-            })}
-          </div>
+          {self.state.loadingSidebar ?
+            <div>
+              <div class="whiteBox margin-top text-center">
+                <h3><a href="/"><span class="fa fa-mail-reply"></span> Back to Directory</a></h3>
+              </div>
+              <div class="whiteBox margin-top text-center">
+                <h2><i class="fa fa-refresh fa-spin"></i></h2>
+              </div>
+            </div>
+          :
+            <div>
+              <div class="whiteBox margin-top text-center">
+                <h3><a href="/"><span class="fa fa-mail-reply pull-left"></span> Back to Directory</a></h3>
+              </div>
+              <div class="whiteBox margin-top text-center">
+                <h3 class="no-margin margin-bottom">{STRINGS.about}</h3>
+                <h4>{self.state.profile.about}</h4>
+                <h4>{self.state.profile.reputation} Reputation</h4>
+                <h4>{self.state.allPosts.length} Posts</h4>
+                <h4>{self.state.follow.follower_count} Followers</h4>
+                <h4>{self.state.follow.following_count} Following</h4>
+              </div>
+              <div class="whiteBox margin-top text-center">
+                <h3 class="no-margin margin-bottom">{STRINGS.languages}</h3>
+                <h5><a onClick={()=>self.changeLanguage('es')}>{STRINGS.spanish}</a></h5>
+                <h5><a onClick={()=>self.changeLanguage('en')}>{STRINGS.english}</a></h5>
+              </div>
+              <div class="whiteBox margin-top text-center">
+                <h3 class="no-margin margin-bottom">{STRINGS.categories}</h3>
+                {self.state.categories.map( function(cat, index){
+                  return(<h5 key={index}><a onClick={() => self.goTo(1, cat.name, 'all')}>{cat.name} ({cat.quantity})</a></h5>)
+                })}
+              </div>
+              <div class="whiteBox margin-top text-center">
+                <h3 class="no-margin margin-bottom">{STRINGS.archives}</h3>
+                {self.state.months.map( function(month, index){
+                  return(<h5 key={index}><a onClick={() => self.goTo(1, 'all', month.year+'/'+month.month)}>{month.year} / {month.month} ({month.quantity})</a></h5>)
+                })}
+              </div>
+            </div>
+          }
         </div>;
 
       const paginator =
@@ -814,7 +856,7 @@ export default class Home extends React.Component {
             <div class="row post whiteBox" >
               { post.resteem ?
                 <div class="col-xs-12">
-                  <a href={"https://steemit.com/@"+userData.username+"/"+post.permlink}><h2><span class="fa fa-retweet"></span> {post.title}</h2></a>
+                  <a href={"https://steemit.com/@"+post.author+"/"+post.permlink}><h2><span class="fa fa-retweet"></span> {post.title}</h2></a>
                   <h4>{STRINGS.posted} {post.created} {STRINGS.in} {post.category.charAt(0).toUpperCase() + post.category.slice(1)} {STRINGS.by} {post.author}</h4>
                 </div>
               :
