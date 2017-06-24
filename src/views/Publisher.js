@@ -75,6 +75,9 @@ export default class Publisher extends React.Component {
         minutesRead: 0,
         strings: (Store.lang && Store.lang == 'es') ? languages.es : languages.en
       }
+
+      // Set default background color on body
+      document.getElementsByTagName('body')[0].style.backgroundColor = "#666";
     }
 
     componentWillMount(){

@@ -4,6 +4,9 @@ import {Link} from "react-router";
 export default class Error extends React.Component {
 
     render() {
+      // Set default background color on body
+      document.getElementsByTagName('body')[0].style.backgroundColor = "#666";
+      
       var self = this;
 
       return(

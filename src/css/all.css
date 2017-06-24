@@ -10,12 +10,10 @@ html{
 }
 
 body {
-  background-size: 35px 20px;
   height: 100%;
 	overflow: auto;
   font-family: 'Roboto', sans-serif;
 	color: #001029;
-	background-image: url('assets/background.png');
 }
 
 body:before {
@@ -71,7 +69,9 @@ body:before {
 	margin-bottom: 50px;
 	margin-top:50px;
 }
-
+.titleLink{
+	color: inherit;
+}
 .titleLink:hover{
 	color: inherit;
 }

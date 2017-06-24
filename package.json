@@ -9,8 +9,7 @@
     "server": "node server.js",
     "build": "webpack --config webpack-prod.config.js",
     "dev": "node server.js --dev",
-    "start": "webpack --config webpack-dev.config.js ",
-    "start-dev": "webpack-dev-server --config webpack-dev.config.js "
+    "start": "webpack --config webpack-dev.config.js "
   },
   "dependencies": {
     "async": "^2.4.1",

@@ -21,8 +21,7 @@ var FacebookButton = ReactSocial.FacebookButton;
 
 const languages = require('../languages.json');
 let config = require('../config.json');
-
-const ON_SERVER = true;
+let userData = {};
 
 var searchParams = {};
 
@@ -67,7 +66,7 @@ export default class Home extends React.Component {
     constructor() {
       super();
       function getParameter(paramName) {
-        var searchString = ON_SERVER ? window.location.search.replace('#','').substring(1) : window.location.hash.substring(3),
+        var searchString = window.location.search.replace('#','').substring(1),
         i, val, params = searchString.split("&");
 
         for (i = 0; i < params.length; i ++) {
@@ -80,7 +79,7 @@ export default class Home extends React.Component {
       }
 
       function getSearchParams() {
-        var searchString = ON_SERVER ? window.location.search.replace('#','').substring(1) : window.location.hash.substring(3),
+        var searchString = window.location.search.replace('#','').substring(1),
         i, val, params = searchString.split("&");
         var toReturn = {};
         for (i = 0; i < params.length; i ++) {
@@ -94,31 +93,26 @@ export default class Home extends React.Component {
       searchParams = getSearchParams();
       console.log('Serach parameters',searchParams);
 
-      if (ON_SERVER){
-
-        config = {
-          "blogTitle": "",
-          "facebookLink": "",
-          "twitterLink": "",
-          "linkedinLink": "",
-          "githubLink": "",
-          "showResteem": false,
-          "steem": {
-            "username": ""
-          }
-        }
-
-        if (window.location.pathname.indexOf('@') == 1)
-          config.steem.username = window.location.pathname.substring(2);
-
-        config.blogTitle = searchParams.title || '@'+config.steem.username+' SteemBlog';
-        config.facebookLink = searchParams.fb || '';
-        config.twitterLink = searchParams.twitter || '';
-        config.linkedinLink = searchParams.linkedin || '';
-        config.githubLink = searchParams.github || '';
-        config.showResteem = (searchParams.r) ? true : false;
-
+      userData = {
+        "blogName": "",
+        "facebookLink": "",
+        "twitterLink": "",
+        "linkedinLink": "",
+        "githubLink": "",
+        "showResteem": false,
+        "username": ""
       }
+
+      if (window.location.pathname.indexOf('@') == 1)
+        userData.username = window.location.pathname.substring(2);
+
+      userData.blogName = searchParams.title || '@'+userData.username+' SteemBlog';
+      userData.facebookLink = searchParams.fb || '';
+      userData.twitterLink = searchParams.twitter || '';
+      userData.linkedinLink = searchParams.linkedin || '';
+      userData.githubLink = searchParams.github || '';
+      userData.showResteem = (searchParams.r) ? true : false;
+
       console.log('Config:',config);
 
       this.state = {
@@ -153,18 +147,46 @@ export default class Home extends React.Component {
       Store.on("languageChanged", function(){
         self.setState({strings: languages[Store.lang]});
       });
-
-      if (config.steem.username == '')
+      console.log('Getting configs from:',config.usernameDirectory, config.permlinkDirectory);
+      if (userData.username == '')
         self.setState({loading: false, error: true});
       else
-        self.loadData().then(function([profile, follow, history]){
-          self.setState({allPosts: history.posts, months: history.months, categories: history.categories, profile: profile, follow: follow});
-          if (self.state.postID.length > 0)
-            self.loadPost(self.state.postID);
+        steem.api.getContentReplies(config.usernameDirectory, config.permlinkDirectory, function(err, configs) {
+          if (err)
+            console.error(err);
           else
-            self.loadPosts(self.state.page, self.state.category, self.state.month);
-        });
+            console.log('Configs:',configs);
+            configs = _.filter(configs, function(o){ return o.author == userData.username });
+            try {
+              const userConfig = JSON.parse(configs[configs.length-1].body);
+              userConfig.username = userData.username;
+              userData = userConfig;
+              console.log('Blog config:',userData);
+              if (userData.blogName == '')
+                userData.blogName = userData.username+' SteemBlog';
 
+              if (userData.styles != ''){
+                let styleElement = document.createElement("style");
+                if (styleElement.styleSheet) {
+                  styleElement.styleSheet.cssText = userData.styles;
+                } else {
+                  styleElement.appendChild(document.createTextNode(userData.styles));
+                }
+                document.getElementsByTagName('head')[0].appendChild(styleElement);
+              }
+
+              self.loadData().then(function([profile, follow, history]){
+                self.setState({allPosts: history.posts, months: history.months, categories: history.categories, profile: profile, follow: follow});
+                if (self.state.postID.length > 0)
+                  self.loadPost(self.state.postID);
+                else
+                  self.loadPosts(self.state.page, self.state.category, self.state.month);
+              });
+            } catch (e) {
+              console.error(e);
+              self.setState({loading: false, error: true});
+            }
+        });
     }
 
     buildSearchParams(params){
@@ -182,17 +204,7 @@ export default class Home extends React.Component {
         }
       }
       console.log(params);
-      if (ON_SERVER){
-        window.location.search = search;
-      } else {
-        window.location.hash = search;
-
-        if (params.id){
-          this.loadPost(params.id);
-        } else {
-          this.loadPosts(params.page || 1, params.cat || 'all', params.month || 'all');
-        }
-      }
+      window.location.search = search;
     }
 
     loadData(){
@@ -209,7 +221,7 @@ export default class Home extends React.Component {
           until( function() {
             return (fromPost == 0);
           }, function(callback){
-            steem.api.getAccountHistory(config.steem.username, fromPost, (fromPost < 10000 && fromPost > 0) ? fromPost : 10000, function(err, toAdd) {
+            steem.api.getAccountHistory(userData.username, fromPost, (fromPost < 10000 && fromPost > 0) ? fromPost : 10000, function(err, toAdd) {
               if (err)
                 callback(err);
               history.push(toAdd);
@@ -260,7 +272,7 @@ export default class Home extends React.Component {
 
                 }
 
-              if ( config.showResteem
+              if ( userData.showResteem
                 && (history[i][1].op[0] == 'custom_json')
                 && (history[i][1].op[1].id == "follow")
                 && (history[i][1].op[1].json.indexOf("reblog") > 0)
@@ -318,8 +330,8 @@ export default class Home extends React.Component {
               reject(err);
             else{
               var profile = {};
-              console.log('Account',config.steem.username,'data:',accounts[0]);
-              console.log('Account',config.steem.username,'profile:', JSON.parse(accounts[0].json_metadata));
+              console.log('Account',userData.username,'data:',accounts[0]);
+              console.log('Account',userData.username,'profile:', JSON.parse(accounts[0].json_metadata));
               profile = JSON.parse(accounts[0].json_metadata).profile;
               profile.reputation = steem.formatter.reputation(accounts[0].reputation);
               resolve(profile);
@@ -343,9 +355,9 @@ export default class Home extends React.Component {
       }
 
       return Promise.all([
-        getAccount(config.steem.username),
-        getFollow(config.steem.username),
-        getHistory(config.steem.username)
+        getAccount(userData.username),
+        getFollow(userData.username),
+        getHistory(userData.username)
       ]);
     }
 
@@ -406,7 +418,7 @@ export default class Home extends React.Component {
 
       var posts = this.state.allPosts;
 
-      var firstReplies = await steem.api.getContentReplies(config.steem.username, id)
+      var firstReplies = await steem.api.getContentReplies(userData.username, id)
 
       async function getChildrenReplies(replies){
         replies = Promise.all(replies.map(async function(reply, i) {
@@ -417,7 +429,7 @@ export default class Home extends React.Component {
         return await replies;
       }
 
-      var post = await steem.api.getContent(config.steem.username, id)
+      var post = await steem.api.getContent(userData.username, id)
       post.replies = await getChildrenReplies(firstReplies);
       post = _.merge(posts[ _.findIndex(posts, {permlink: post.permlink }) ], post);
       self.setState({postID: id, page: 1, category: 'all', month: 'all', posts: [post], loading: false});
@@ -446,7 +458,7 @@ export default class Home extends React.Component {
 
       self.setState({loading: true});
 
-      if (!config.showResteem)
+      if (!userData.showResteem)
         posts = _.filter(posts, function(o) { return !o.resteem });
 
       // Filter by category
@@ -466,7 +478,7 @@ export default class Home extends React.Component {
       // Get all posts content
       Promise.all(posts.map( function(post, index){
         return new Promise(function(resolvePost, rejectPost){
-          if (config.showResteem && post.resteem){
+          if (userData.showResteem && post.resteem){
             steem.api.getContent(post.author, post.permlink, function(err, post) {
               if (err)
                 rejectPost(err);
@@ -476,7 +488,7 @@ export default class Home extends React.Component {
               }
             });
           } else {
-            steem.api.getContent(config.steem.username, post.permlink, function(err, post) {
+            steem.api.getContent(userData.username, post.permlink, function(err, post) {
               if (err)
                 rejectPost(err);
               else
@@ -645,9 +657,9 @@ export default class Home extends React.Component {
             <div class="col-xs-12 whiteBox">
               <br></br>
               <h2>Invalid URL parameters.</h2>
-              <h2>Go to <a href={ON_SERVER ? '/url' : '/#/url'}>URL Generator</a> to generate your blog url.</h2>
+              <h2>Go to <a href={'/tools'}>Steemblog Tools</a> to upload your blog configuration.</h2>
               <br></br>
-              <h2>Go to <a href={ON_SERVER ? '/publisher' : '/#/publisher'}>SteemBlog Publisher</a> to publish new posts.</h2>
+              <h2>Go to <a href={'/publisher'}>SteemBlog Publisher</a> to publish new posts.</h2>
               <br></br>
             </div>
           </div>
@@ -657,15 +669,15 @@ export default class Home extends React.Component {
         <div class="row post whiteBox titlebox">
           <h1>
             <a class="titleLink" onClick={() => self.goTo(1, 'all', 'all')}>
-              {config.blogTitle}
+              {userData.blogName}
             </a>
-            <a href={"https://steemit.com/@"+config.steem.username} target="_blank" class="fa iconTitle pull-right">
+            <a href={"https://steemit.com/@"+userData.username} target="_blank" class="fa iconTitle pull-right">
               <div class="steemit-icon-big" ></div>
             </a>
-            { config.facebookLink ? <a href={config.facebookLink} target="_blank" class="fa fa-facebook iconTitle pull-right"></a> : <a/>}
-            { config.twitterLink ? <a href={config.twitterLink} target="_blank" class="fa fa-twitter iconTitle pull-right"></a> : <a/>}
-            { config.linkedinLink ? <a href={config.linkedinLink} target="_blank" class="fa fa-linkedin iconTitle pull-right"></a> : <a/>}
-            { config.githubLink ? <a href={config.githubLink} target="_blank" class="fa fa-github iconTitle pull-right"></a> : <a/>}
+            { userData.facebookLink ? <a href={userData.facebookLink} target="_blank" class="fa fa-facebook iconTitle pull-right"></a> : <a/>}
+            { userData.twitterLink ? <a href={userData.twitterLink} target="_blank" class="fa fa-twitter iconTitle pull-right"></a> : <a/>}
+            { userData.linkedinLink ? <a href={userData.linkedinLink} target="_blank" class="fa fa-linkedin iconTitle pull-right"></a> : <a/>}
+            { userData.githubLink ? <a href={userData.githubLink} target="_blank" class="fa fa-github iconTitle pull-right"></a> : <a/>}
           </h1>
         </div>;
 
@@ -780,7 +792,7 @@ export default class Home extends React.Component {
                   </h3>
                 </div>
                 <div class="col-xs-3 text-center">
-                  <a href={"https://steemit.com/@"+config.steem.username+"/"+post.permlink}>
+                  <a href={"https://steemit.com/@"+userData.username+"/"+post.permlink}>
                     <h3>{STRINGS.on} Steemit <div class="steemit-icon-small pull-right"></div></h3>
                   </a>
                 </div>
@@ -802,7 +814,7 @@ export default class Home extends React.Component {
             <div class="row post whiteBox" >
               { post.resteem ?
                 <div class="col-xs-12">
-                  <a href={"https://steemit.com/@"+config.steem.username+"/"+post.permlink}><h2><span class="fa fa-retweet"></span> {post.title}</h2></a>
+                  <a href={"https://steemit.com/@"+userData.username+"/"+post.permlink}><h2><span class="fa fa-retweet"></span> {post.title}</h2></a>
                   <h4>{STRINGS.posted} {post.created} {STRINGS.in} {post.category.charAt(0).toUpperCase() + post.category.slice(1)} {STRINGS.by} {post.author}</h4>
                 </div>
               :
@@ -830,7 +842,7 @@ export default class Home extends React.Component {
               </div>
               <div class="col-xs-4 text-center">
                 { post.resteem ?
-                  <a href={"https://steemit.com/@"+config.steem.username+"/"+post.permlink}>
+                  <a href={"https://steemit.com/@"+userData.username+"/"+post.permlink}>
                     <h4>{STRINGS.on} Steemit <div class="steemit-icon-small pull-right"></div></h4>
                   </a>
                 :

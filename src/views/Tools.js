@@ -35,14 +35,34 @@ export default class Tools extends React.Component {
         loading: true,
         signer: '',
         signerPostKey: '',
-        author: getParameter('author') || '',
-        permlink: getParameter('permlink') || '',
+        author: "",
+        blogName: "",
+        fbURL: "",
+        twitterURL: "",
+        linkedinURL: "",
+        githubURL: "",
+        resteem: "",
+        styles: `
+          body {
+            color: #001029;
+            background-color: #666;
+          }
+          a{
+            color: #326067;
+          }
+          a:hover{
+            color: #28AFC2;
+          }
+        `,
         voteWeight: 1000,
         username: '',
         password: '',
         keys: {},
         strings: (Store.lang && Store.lang == 'es') ? languages.es : languages.en
       }
+
+      // Set default background color on body
+      document.getElementsByTagName('body')[0].style.backgroundColor = "#666";
     }
 
     componentWillMount(){
@@ -60,21 +80,6 @@ export default class Tools extends React.Component {
       keys.available = (await steem.api.getAccounts([self.state.username.toLowerCase()])).length == 0;
       self.setState({keys: keys, loading: false});
       self._message.open('warning', 'Is not safe to use this keys unless you have a very strong password.', false);
-    }
-
-    registerNewUser(){
-      // var self = this;
-      // self.setState({loading: true});
-      // steem.broadcast.accountCreate(wif, fee, creator, self.state.username.toLowerCase(), owner, active, posting, memoKey, jsonMetadata, function(err, result) {
-      //   self.setState({loading: false});
-      //   console.log(err);
-      //   if (err && err.payload.error.data.stack[0].format)
-      //     self._message.open('error', err.payload.error.data.stack[0].format.toString(), false);
-      //   else if (err)
-      //     self._message.open('error', err.toString(), false);
-      //   else
-      //     self._message.open('success', 'Account created', true);
-      // });
     }
 
     votePost(){
@@ -105,7 +110,43 @@ export default class Tools extends React.Component {
         self.state.permlink+"-"+moment().toISOString().replace(/[-:.]/g,"").toLowerCase(),
         "",
         self.state.comment,
-        JSON.stringify({"app":"steemblog/0.6","format":"markdown+html","tags":[]}),
+        JSON.stringify({"app":"steemblog/0.8","format":"markdown+html","tags":[]}),
+        function(err, result) {
+          self.setState({loading: false});
+          console.log(err);
+          if (err && err.payload.error.data.stack[0].format)
+            self._message.open('error', err.payload.error.data.stack[0].format.toString(), false);
+          else if (err)
+            self._message.open('error', err.toString(), false);
+          else
+            self._message.open('success', 'Comment submitted', true);;
+      });
+    }
+
+    uploadConfig(){
+      var self = this;
+      self.setState({loading: true});
+      steem.broadcast.comment(
+        self.state.signerPostKey,
+        config.usernameDirectory,
+        config.permlinkDirectory,
+        self.state.signer,
+        config.permlinkDirectory+"-"+moment().toISOString().replace(/[-:.]/g,"").toLowerCase(),
+        "",
+        JSON.stringify({
+          "username":self.state.signer,
+          "blogName": self.state.blogName,
+          "facebookLink": self.state.fbURL,
+          "twitterLink": self.state.twitterURL,
+          "linkedinLink": self.state.linkedinURL,
+          "githubLink": self.state.githubURL,
+          "showResteem": self.state.resteem,
+          "blogDescription": self.state.blogDescription,
+          "backgroundImage": self.state.backgroundImage,
+          "backgroundColor": self.state.backgroundColor,
+          "styles": self.state.styles
+        }),
+        JSON.stringify({"app":"steemblog","format":"json","tags":[]}),
         function(err, result) {
           self.setState({loading: false});
           console.log(err);
@@ -282,6 +323,121 @@ export default class Tools extends React.Component {
           </div>
         </div>;
 
+      const configUploader =
+        <div class="row">
+          <div class="col-xs-3">
+            <div class="form-group">
+              <label>Blog Name</label>
+              <input
+                type="text"
+                class="form-control"
+                value={self.state.blogName}
+                onChange={(event) => {
+                  self.setState({ blogName: event.target.value });
+                }}
+              />
+            </div>
+          </div>
+          <div class="col-xs-3">
+            <div class="form-group">
+              <label>Facebook URL</label>
+              <input
+                type="text"
+                class="form-control"
+                value={self.state.fbURL}
+                onChange={(event) => {
+                  self.setState({ fbURL: event.target.value });
+                }}
+              />
+            </div>
+          </div>
+          <div class="col-xs-3">
+            <div class="form-group">
+              <label>Github URL</label>
+              <input
+                type="text"
+                class="form-control"
+                value={self.state.githubURL}
+                onChange={(event) => {
+                  self.setState({ githubURL: event.target.value });
+                }}
+              />
+            </div>
+          </div>
+          <div class="col-xs-3">
+            <div class="form-group">
+              <label>Twitter URL</label>
+              <input
+                type="text"
+                class="form-control"
+                value={self.state.twitterURL}
+                onChange={(event) => {
+                  self.setState({ twitterURL: event.target.value });
+                }}
+              />
+            </div>
+          </div>
+          <div class="col-xs-3">
+            <div class="form-group">
+              <label>Linkedin URL</label>
+              <input
+                type="text"
+                class="form-control"
+                value={self.state.linkedinURL}
+                onChange={(event) => {
+                  self.setState({ linkedinURL: event.target.value });
+                }}
+              />
+            </div>
+          </div>
+          <div class="col-xs-6">
+            <div class="form-group">
+              <label>Short Description</label>
+              <input
+                type="text"
+                class="form-control"
+                value={self.state.blogDescription}
+                onChange={(event) => {
+                  self.setState({ blogDescription: event.target.value });
+                }}
+              />
+            </div>
+          </div>
+          <div class="col-xs-3">
+            <div class="form-group">
+              <div class="checkbox">
+                <label>
+                  <input
+                    type="checkbox"
+                    value={self.state.resteem}
+                    onChange={(event) => {
+                      self.setState({ resteem: event.target.checked });
+                    }}
+                  /> Show Resteem
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="col-xs-12">
+            <div class="form-group">
+              <label>Styles</label>
+              <textarea
+                type="text"
+                class="form-control"
+                value={self.state.styles}
+                onChange={(event) => {
+                  self.setState({ styles: event.target.value });
+                }}
+                style={{ resize: "none", height: "300px" }}
+                placeholder='Comment'
+              />
+            </div>
+          </div>
+          <div class="col-xs-12 text-center">
+            <div class="btn btn-default" onClick={() => self.uploadConfig()}> Upload </div>
+          </div>
+        </div>;
+
       const actions =
         <div class="row">
           <div class="col-xs-3">
@@ -336,8 +492,7 @@ export default class Tools extends React.Component {
               {generator}
               <div class="whiteBox">
                 {signer}
-                {post}
-                {actions}
+                {configUploader}
               </div>
             </div>
             }
