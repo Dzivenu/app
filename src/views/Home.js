@@ -40,8 +40,13 @@ var converter = new showdown.Converter({
     'youtube',
     {
       type: 'lang',
-      regex: /([a-z\-_0-9\/\:\.]*\.(jpg|jpeg|png|gif))/ig,
-      replace: '<div class="row row-image text-center"><img src="$1" width="100%" height="auto"/></div>'
+      filter: function (text, converter) {
+        var regex = /((http(s?):)([/|.|\w|\s])*\.(?:jpg|gif|png))/ig, result;
+        while ((result = regex.exec(text)))
+          if ((text[result.index-1] != "(") && (text[result[0].length+1] != ")"))
+            text = text.substring(0, result.index)+"<center><img src=\""+result[0]+"\" style=\"max-width:100%;height:auto;\"/></center>"+text.substring(result.index+result[0].length);
+        return text;
+      }
     },
     {
       type: 'lang',
@@ -117,10 +122,10 @@ export default class Home extends React.Component {
 
       this.state = {
         loading: true,
-        postID: getParameter('id') || '',
-        page: getParameter('page') || 1,
-        category: getParameter('cat') || 'all',
-        month: getParameter('month') || 'all',
+        postID: searchParams.id || '',
+        page: searchParams.page || 1,
+        category: searchParams.cat || 'all',
+        month: searchParams.month || 'all',
         loadingPosts: false,
         loadingSidebar: true,
         info: {},
@@ -275,15 +280,16 @@ export default class Home extends React.Component {
 
               posts = _.filter(posts, function(o) { return (o.categories.indexOf('Test') < 0) });
 
-              // console.log('Posts', posts.length);
+              // console.log('Posts', self.state.postID);
               if ((self.state.postID.length > 0)
-                && ( _.findIndex(posts, {permlink: self.state.postID }) < 0)
+                && ( _.findIndex(posts, {permlink: self.state.postID }) > -1)
                 && !self.state.loadingPosts
                 && (self.state.posts.length == 0)
               ){
                 self.setState({allPosts: posts, loadingPosts: true});
                 self.loadPost(self.state.postID);
-              } else if ((posts.length > (self.state.page*10))
+              } else if ((self.state.postID.length == 0)
+                && (posts.length > (self.state.page*10))
                 && !self.state.loadingPosts
                 && (self.state.posts.length == 0)
               ){
@@ -298,7 +304,6 @@ export default class Home extends React.Component {
           }, function(err){
 
             if ((self.state.postID.length > 0)
-              && ( _.findIndex(posts, {permlink: self.state.postID }) < 0)
               && !self.state.loadingPosts
               && (self.state.posts.length == 0)
             ){
