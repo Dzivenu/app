@@ -278,9 +278,9 @@ export default class Home extends React.Component {
                   }
               }
 
-              posts = _.filter(posts, function(o) { return (o.categories.indexOf('Test') < 0) });
+              posts = _.filter(posts, function(o) { return (o.categories.toString().indexOf('Test') < 0) });
+              posts = _.filter(posts, function(o) { return (o.categories.toString().indexOf('test') < 0) });
 
-              // console.log('Posts', self.state.postID);
               if ((self.state.postID.length > 0)
                 && ( _.findIndex(posts, {permlink: self.state.postID }) > -1)
                 && !self.state.loadingPosts
@@ -447,7 +447,7 @@ export default class Home extends React.Component {
         self.buildSearchParams(searchParams);
       }
 
-      var posts = this.state.allPosts;
+      var postsToShow = this.state.allPosts;
 
       var firstReplies = await steem.api.getContentReplies(userData.username, id)
 
@@ -462,7 +462,7 @@ export default class Home extends React.Component {
 
       var post = await steem.api.getContent(userData.username, id)
       post.replies = await getChildrenReplies(firstReplies);
-      post = _.merge(posts[ _.findIndex(posts, {permlink: post.permlink }) ], post);
+      post = _.merge(postsToShow[ _.findIndex(postsToShow, {permlink: post.permlink }) ], post);
       self.setState({postID: id, page: 1, category: 'all', month: 'all', posts: [post], loading: false, loadingPosts: false});
 
     }
@@ -485,29 +485,29 @@ export default class Home extends React.Component {
 
     loadPosts(page, category, month){
       var self = this;
-      var posts = self.state.allPosts;
+      var postsToShow = self.state.allPosts;
 
       self.setState({loading: true});
 
       if (!userData.showResteem)
-        posts = _.filter(posts, function(o) { return !o.resteem });
+        postsToShow = _.filter(postsToShow, function(o) { return !o.resteem });
 
       // Filter by category
       if (category && category != 'all'){
-        posts = _.filter(posts, function(o) { return o.categories.indexOf(category.charAt(0).toUpperCase()+category.slice(1)) > -1 });
+        postsToShow = _.filter(postsToShow, function(o) { return o.categories.indexOf(category.charAt(0).toUpperCase()+category.slice(1)) > -1 });
       }
 
       // Filer by month
       if (category && month != 'all'){
-        posts = _.filter(posts, function(o) {
+        postsToShow = _.filter(postsToShow, function(o) {
           return (new Date(o.created).getMonth()+1 == month.split('/')[1]) && (new Date(o.created).getFullYear() == month.split('/')[0])
         });
       }
       if (page)
-        posts = posts.slice( (page-1)*10, (page)*10);
+        postsToShow = postsToShow.slice( (page-1)*10, (page)*10);
 
       // Get all posts content
-      Promise.all(posts.map( function(post, index){
+      Promise.all(postsToShow.map( function(post, index){
         return new Promise(function(resolvePost, rejectPost){
           if (userData.showResteem && post.resteem){
             steem.api.getContent(post.author, post.permlink, function(err, post) {
@@ -531,11 +531,11 @@ export default class Home extends React.Component {
 
         // Convert video in all posts
         postsContent.map(function(post, i){
-          post = _.merge(posts[i], post);
+          post = _.merge(postsToShow[i], post);
         });
-        console.log('Posts to show:', posts);
+        console.log('Posts to show:', postsToShow);
 
-        self.setState({postID: '', page: page, category: category, month: month, posts: posts, loading: false, loadingPosts: false});
+        self.setState({postID: '', page: page, category: category, month: month, posts: postsToShow, loading: false, loadingPosts: false});
       }).catch(function(err){
         console.error(err);
       });
