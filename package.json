@@ -3,7 +3,7 @@
   "repository": "https://github.com/AugustoL/SteemitBlog",
   "description": "SteemitBlog App using the steem blockchain.",
   "authors": "Augusto Lemble <me@augustolemble.com>",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "main": "webpack-prod.config.js",
   "scripts": {
     "server": "node server.js",
